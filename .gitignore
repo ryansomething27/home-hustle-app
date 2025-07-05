@@ -27,3 +27,22 @@ doc/api/
 
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+flutter_*.png
+
+# Firebase
+firebase-debug.log
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# VS Code
+.vscode/
