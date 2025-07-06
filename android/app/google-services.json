@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "951763872800",
+    "project_id": "home-hustle-app",
+    "storage_bucket": "home-hustle-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951763872800:android:5371c28e972a865634e045",
+        "android_client_info": {
+          "package_name": "com.example.home_hustle_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4h3Oyiy748dMOGuAd_AqUnahiXgwXixs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951763872800:android:59dd5da99205a36534e045",
+        "android_client_info": {
+          "package_name": "com.homehustle.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4h3Oyiy748dMOGuAd_AqUnahiXgwXixs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
