@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Home Hustle App</string>
+	<string>Home Hustle</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>home_hustle_app</string>
+	<string>home_hustle</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -41,9 +41,77 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Firebase Configuration -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+	
+	<!-- Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	
+	<!-- Permission Usage Descriptions -->
+	<key>NSCameraUsageDescription</key>
+	<string>Home Hustle needs camera access to let you take profile photos and scan documents.</string>
+	
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Home Hustle needs photo library access to let you choose profile photos.</string>
+	
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Home Hustle needs permission to save photos to your library.</string>
+	
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Home Hustle needs location access to show nearby public jobs in your area.</string>
+	
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Home Hustle needs location access to show nearby public jobs in your area.</string>
+	
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Home Hustle uses this to provide personalized job recommendations.</string>
+	
+	<!-- App Transport Security -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	
+	<!-- URL Schemes -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.homehustle.app</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- Status Bar -->
+	<key>UIStatusBarHidden</key>
+	<false/>
+	
+	<!-- iPad Specific -->
+	<key>UIRequiresFullScreen</key>
+	<false/>
+	
+	<!-- iOS 14+ Local Network -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartobservatory._tcp</string>
+	</array>
 </dict>
 </plist>
