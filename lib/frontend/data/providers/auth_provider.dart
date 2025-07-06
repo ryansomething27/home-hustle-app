@@ -1,22 +1,26 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 
+// Define UserRole enum
+enum UserRole { parent, child, employer }
+
+// Provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();
 });
 
+// Auth State
 class AuthState {
-  final User? user;
-  final bool isLoading;
-  final String? error;
 
   AuthState({
     this.user,
     this.isLoading = false,
     this.error,
   });
+  final User? user;
+  final bool isLoading;
+  final String? error;
 
   bool get isAuthenticated => user != null;
 
@@ -33,12 +37,13 @@ class AuthState {
   }
 }
 
+// Auth Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
-  final ApiService _apiService = ApiService();
 
   AuthNotifier() : super(AuthState()) {
     _initialize();
   }
+  final ApiService _apiService = ApiService();
 
   Future<void> _initialize() async {
     state = state.copyWith(isLoading: true);
@@ -46,7 +51,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _apiService.initialize();
       // Check if user is already logged in
       // This would be implemented based on your token validation logic
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(error: e.toString());
     } finally {
       state = state.copyWith(isLoading: false);
@@ -69,7 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       final user = User.fromJson(userData);
       state = state.copyWith(user: user, isLoading: false);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -98,7 +103,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       // After registration, you might want to auto-login or verify email
       state = state.copyWith(isLoading: false);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -112,7 +117,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       _apiService.clearAuthToken();
       state = AuthState(); // Reset to initial state
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -125,7 +130,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? profileImageUrl,
   }) async {
     final currentUser = state.user;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      return;
+    }
     
     state = state.copyWith(isLoading: true, error: null);
     
@@ -136,7 +143,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       };
       
       await _apiService.updateProfile(
-        userId: currentUser.id,
+        userId: currentUser.userId,
         updates: updates,
       );
       
@@ -146,7 +153,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: updatedUser,
         isLoading: false,
       );
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -157,18 +164,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> updateUserSettings(Map<String, dynamic> settings) async {
     final currentUser = state.user;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      return;
+    }
     
     state = state.copyWith(isLoading: true, error: null);
     
     try {
       await _apiService.updateUserSettings(
-        userId: currentUser.id,
+        userId: currentUser.userId,
         settings: settings,
       );
       
       state = state.copyWith(isLoading: false);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -179,14 +188,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> sendVerificationEmail() async {
     final currentUser = state.user;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      return;
+    }
     
     state = state.copyWith(isLoading: true, error: null);
     
     try {
-      await _apiService.sendVerificationEmail(currentUser.id);
+      await _apiService.sendVerificationEmail(currentUser.userId);
       state = state.copyWith(isLoading: false);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -200,19 +211,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String role,
   }) async {
     final currentUser = state.user;
-    if (currentUser == null || currentUser.role != UserRole.parent) return;
+    if (currentUser == null || currentUser.role != 'parent') {
+      return;
+    }
     
     state = state.copyWith(isLoading: true, error: null);
     
     try {
       await _apiService.inviteFamilyMember(
-        parentId: currentUser.id,
+        parentId: currentUser.userId,
         email: email,
         role: role,
       );
       
       state = state.copyWith(isLoading: false);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -223,13 +236,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> refreshUser() async {
     final currentUser = state.user;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      return;
+    }
     
     try {
-      final response = await _apiService.getUser(currentUser.id);
+      final response = await _apiService.getUser(currentUser.userId);
       final user = User.fromJson(response);
       state = state.copyWith(user: user);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(error: e.toString());
     }
   }

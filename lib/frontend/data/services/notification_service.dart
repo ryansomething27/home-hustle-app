@@ -56,14 +56,10 @@ class NotificationService {
 
   // Initialize local notifications
   Future<void> _initializeLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    final androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    final iosSettings = DarwinInitializationSettings();
 
-    const initSettings = InitializationSettings(
+    final initSettings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
     );
@@ -75,18 +71,17 @@ class NotificationService {
 
     // Create notification channel for Android
     if (Platform.isAndroid) {
-      const androidChannel = AndroidNotificationChannel(
+      final androidChannel = AndroidNotificationChannel(
         _channelId,
         _channelName,
         description: _channelDescription,
         importance: Importance.high,
-        playSound: true,
       );
 
       await _localNotifications
-          .resolvePlatformSpecificImplementation
+          .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>()
-          .createNotificationChannel(androidChannel);
+          ?.createNotificationChannel(androidChannel);
     }
   }
 
@@ -112,18 +107,16 @@ class NotificationService {
 
   // Update FCM token in backend
   Future<void> _updateFCMToken() async {
-    final token = await _authService.getAuthToken();
-    if (token == null) return;
+    final userId = _authService.currentUserId;
+    if (userId == null) return;
 
     final fcmToken = await _firebaseMessaging.getToken();
     if (fcmToken == null) return;
 
     try {
-      await _apiService.post(
-        '/notifications/update-token',
-        body: {'fcmToken': fcmToken},
-        token: token,
-      );
+      await _apiService.post('/notifications/update-token', {
+        'fcmToken': fcmToken,
+      });
     } catch (e) {
       print('Failed to update FCM token: $e');
     }
@@ -149,7 +142,7 @@ class NotificationService {
   // Handle message data for navigation
   void _handleMessageData(Map<String, dynamic> data) {
     final notificationType = data['type'] as String?;
-    final targetId = data['targetId'] as String?;
+    // final targetId = data['targetId'] as String?;
 
     // Navigate based on notification type
     // This should be implemented with your navigation system
@@ -178,7 +171,7 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       _channelId,
       _channelName,
       channelDescription: _channelDescription,
@@ -187,13 +180,9 @@ class NotificationService {
       showWhen: true,
     );
 
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+    final iosDetails = DarwinNotificationDetails();
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -212,20 +201,16 @@ class NotificationService {
     int? limit,
     bool? unreadOnly,
   }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
+    final userId = _authService.currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
 
-    final queryParams = <String, String>{};
-    if (limit != null) queryParams['limit'] = limit.toString();
-    if (unreadOnly != null) queryParams['unreadOnly'] = unreadOnly.toString();
-
-    final queryString = queryParams.entries
-        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-        .join('&');
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+    if (unreadOnly != null) queryParams['unreadOnly'] = unreadOnly;
 
     final response = await _apiService.get(
-      '/notifications${queryString.isNotEmpty ? '?$queryString' : ''}',
-      token: token,
+      '/notifications',
+      params: queryParams,
     );
 
     return (response['notifications'] as List)
@@ -235,49 +220,35 @@ class NotificationService {
 
   // Mark notification as read
   Future<void> markAsRead(String notificationId) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
+    final userId = _authService.currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
 
-    await _apiService.patch(
-      '/notifications/$notificationId/read',
-      body: {},
-      token: token,
-    );
+    await _apiService.patch('/notifications/$notificationId/read', {});
   }
 
   // Mark all notifications as read
   Future<void> markAllAsRead() async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
+    final userId = _authService.currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
 
-    await _apiService.post(
-      '/notifications/mark-all-read',
-      body: {},
-      token: token,
-    );
+    await _apiService.post('/notifications/mark-all-read', {});
   }
 
   // Delete notification
   Future<void> deleteNotification(String notificationId) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
+    final userId = _authService.currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
 
-    await _apiService.delete(
-      '/notifications/$notificationId',
-      token: token,
-    );
+    await _apiService.delete('/notifications/$notificationId');
   }
 
   // Get unread notification count
   Future<int> getUnreadCount() async {
-    final token = await _authService.getAuthToken();
-    if (token == null) return 0;
+    final userId = _authService.currentUserId;
+    if (userId == null) return 0;
 
     try {
-      final response = await _apiService.get(
-        '/notifications/unread-count',
-        token: token,
-      );
+      final response = await _apiService.get('/notifications/unread-count');
       return response['count'] as int;
     } catch (e) {
       return 0;
@@ -306,10 +277,10 @@ class NotificationService {
     bool? purchases,
     bool? reminders,
   }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
+    final userId = _authService.currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
 
-    final preferences = <String, bool>{};
+    final preferences = <String, dynamic>{};
     if (jobOffers != null) preferences['jobOffers'] = jobOffers;
     if (withdrawalRequests != null) {
       preferences['withdrawalRequests'] = withdrawalRequests;
@@ -318,23 +289,15 @@ class NotificationService {
     if (purchases != null) preferences['purchases'] = purchases;
     if (reminders != null) preferences['reminders'] = reminders;
 
-    await _apiService.patch(
-      '/notifications/preferences',
-      body: preferences,
-      token: token,
-    );
+    await _apiService.patch('/notifications/preferences', preferences);
   }
 
   // Get notification preferences
   Future<NotificationPreferences> getNotificationPreferences() async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
+    final userId = _authService.currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
 
-    final response = await _apiService.get(
-      '/notifications/preferences',
-      token: token,
-    );
-
+    final response = await _apiService.get('/notifications/preferences');
     return NotificationPreferences.fromJson(response);
   }
 

@@ -1,354 +1,121 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../models/account.dart';
-import '../models/transaction.dart';
-import '../models/user.dart';
-import 'api_service.dart';
-import 'auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class BankService {
-  final ApiService _apiService;
-  final AuthService _authService;
+// Enums
+enum AccountType { checking, savings, investment }
+enum TransactionType { deposit, withdrawal, transfer, interest, fee, jobPayment }
+enum WithdrawalStatus { pending, approved, rejected, cancelled }
 
-  BankService({
-    required ApiService apiService,
-    required AuthService authService,
-  })  : _apiService = apiService,
-        _authService = authService;
+// Account model
+class Account {
 
-  // Create a new account for child
-  Future<Account> createAccount({
-    required String userId,
-    required AccountType type,
-    double initialBalance = 0.0,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
+  Account({
+    required this.id,
+    required this.userId,
+    required this.type,
+    required this.name,
+    required this.balance,
+    required this.createdAt,
+    required this.updatedAt,
+    this.savingsGoal,
+  });
 
-    final requestBody = {
+  factory Account.fromMap(Map<String, dynamic> data, String id) {
+    return Account(
+      id: id,
+      userId: data['userId'] ?? '',
+      type: AccountType.values.firstWhere(
+        (e) => e.toString() == 'AccountType.${data['type']}',
+        orElse: () => AccountType.checking,
+      ),
+      name: data['name'] ?? '',
+      balance: (data['balance'] ?? 0).toDouble(),
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      savingsGoal: data['savingsGoal'] != null
+          ? SavingsGoal.fromMap(data['savingsGoal'])
+          : null,
+    );
+  }
+  final String id;
+  final String userId;
+  final AccountType type;
+  final String name;
+  final double balance;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final SavingsGoal? savingsGoal;
+
+  Map<String, dynamic> toMap() {
+    return {
       'userId': userId,
-      'type': type.name,
-      'initialBalance': initialBalance,
+      'type': type.toString().split('.').last,
+      'name': name,
+      'balance': balance,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
+      if (savingsGoal != null) 'savingsGoal': savingsGoal!.toMap(),
     };
-
-    final response = await _apiService.post(
-      '/accounts/create',
-      body: requestBody,
-      token: token,
-    );
-
-    return Account.fromJson(response);
-  }
-
-  // Get all accounts for a user
-  Future<List<Account>> getAccounts({String? userId}) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final currentUser = await _authService.getCurrentUser();
-    if (currentUser == null) throw Exception('User not found');
-
-    final targetUserId = userId ?? currentUser.id;
-
-    final response = await _apiService.get(
-      '/accounts?userId=$targetUserId',
-      token: token,
-    );
-
-    return (response['accounts'] as List)
-        .map((json) => Account.fromJson(json))
-        .toList();
-  }
-
-  // Get account by ID
-  Future<Account> getAccountById(String accountId) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final response = await _apiService.get(
-      '/accounts/$accountId',
-      token: token,
-    );
-
-    return Account.fromJson(response);
-  }
-
-  // Transfer funds between accounts
-  Future<TransferResult> transferFunds({
-    required String fromAccountId,
-    required String toAccountId,
-    required double amount,
-    String? description,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final requestBody = {
-      'fromAccountId': fromAccountId,
-      'toAccountId': toAccountId,
-      'amount': amount,
-      if (description != null) 'description': description,
-    };
-
-    final response = await _apiService.post(
-      '/accounts/transfer',
-      body: requestBody,
-      token: token,
-    );
-
-    return TransferResult.fromJson(response);
-  }
-
-  // Request withdrawal (child)
-  Future<WithdrawalRequest> requestWithdrawal({
-    required String accountId,
-    required double amount,
-    String? reason,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final requestBody = {
-      'accountId': accountId,
-      'amount': amount,
-      if (reason != null) 'reason': reason,
-    };
-
-    final response = await _apiService.post(
-      '/accounts/withdraw',
-      body: requestBody,
-      token: token,
-    );
-
-    return WithdrawalRequest.fromJson(response);
-  }
-
-  // Approve withdrawal request (parent)
-  Future<void> approveWithdrawal({
-    required String requestId,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    await _apiService.post(
-      '/accounts/withdraw/approve',
-      body: {
-        'requestId': requestId,
-      },
-      token: token,
-    );
-  }
-
-  // Reject withdrawal request (parent)
-  Future<void> rejectWithdrawal({
-    required String requestId,
-    String? reason,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    await _apiService.post(
-      '/accounts/withdraw/reject',
-      body: {
-        'requestId': requestId,
-        if (reason != null) 'reason': reason,
-      },
-      token: token,
-    );
-  }
-
-  // Get withdrawal requests
-  Future<List<WithdrawalRequest>> getWithdrawalRequests({
-    String? userId,
-    WithdrawalStatus? status,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final queryParams = <String, String>{};
-    if (userId != null) queryParams['userId'] = userId;
-    if (status != null) queryParams['status'] = status.name;
-
-    final queryString = queryParams.entries
-        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-        .join('&');
-
-    final response = await _apiService.get(
-      '/accounts/withdrawals${queryString.isNotEmpty ? '?$queryString' : ''}',
-      token: token,
-    );
-
-    return (response['requests'] as List)
-        .map((json) => WithdrawalRequest.fromJson(json))
-        .toList();
-  }
-
-  // Get transaction history
-  Future<List<Transaction>> getTransactions({
-    String? accountId,
-    String? userId,
-    DateTime? startDate,
-    DateTime? endDate,
-    TransactionType? type,
-    int? limit,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final queryParams = <String, String>{};
-    if (accountId != null) queryParams['accountId'] = accountId;
-    if (userId != null) queryParams['userId'] = userId;
-    if (startDate != null) queryParams['startDate'] = startDate.toIso8601String();
-    if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
-    if (type != null) queryParams['type'] = type.name;
-    if (limit != null) queryParams['limit'] = limit.toString();
-
-    final queryString = queryParams.entries
-        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-        .join('&');
-
-    final response = await _apiService.get(
-      '/accounts/transactions${queryString.isNotEmpty ? '?$queryString' : ''}',
-      token: token,
-    );
-
-    return (response['transactions'] as List)
-        .map((json) => Transaction.fromJson(json))
-        .toList();
-  }
-
-  // Get loan details
-  Future<Loan?> getCurrentLoan({String? userId}) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final currentUser = await _authService.getCurrentUser();
-    if (currentUser == null) throw Exception('User not found');
-
-    final targetUserId = userId ?? currentUser.id;
-
-    final response = await _apiService.get(
-      '/accounts/loan?userId=$targetUserId',
-      token: token,
-    );
-
-    if (response['loan'] == null) return null;
-    return Loan.fromJson(response['loan']);
-  }
-
-  // Request loan (when overdraft)
-  Future<Loan> requestLoan({
-    required double amount,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final currentUser = await _authService.getCurrentUser();
-    if (currentUser == null) throw Exception('User not found');
-
-    final requestBody = {
-      'userId': currentUser.id,
-      'amount': amount,
-    };
-
-    final response = await _apiService.post(
-      '/accounts/loan',
-      body: requestBody,
-      token: token,
-    );
-
-    return Loan.fromJson(response);
-  }
-
-  // Make loan payment
-  Future<void> makeLoanPayment({
-    required String loanId,
-    required double amount,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    await _apiService.post(
-      '/accounts/loan/payment',
-      body: {
-        'loanId': loanId,
-        'amount': amount,
-      },
-      token: token,
-    );
-  }
-
-  // Get account summary for all family members (parent)
-  Future<FamilyBankSummary> getFamilyBankSummary() async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final response = await _apiService.get(
-      '/accounts/family-summary',
-      token: token,
-    );
-
-    return FamilyBankSummary.fromJson(response);
-  }
-
-  // Set savings goal
-  Future<SavingsGoal> setSavingsGoal({
-    required String accountId,
-    required String goalName,
-    required double targetAmount,
-    DateTime? targetDate,
-  }) async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    final requestBody = {
-      'accountId': accountId,
-      'goalName': goalName,
-      'targetAmount': targetAmount,
-      if (targetDate != null) 'targetDate': targetDate.toIso8601String(),
-    };
-
-    final response = await _apiService.post(
-      '/accounts/savings-goal',
-      body: requestBody,
-      token: token,
-    );
-
-    return SavingsGoal.fromJson(response);
-  }
-
-  // Get account balance
-  Future<double> getBalance(String accountId) async {
-    final account = await getAccountById(accountId);
-    return account.balance;
-  }
-
-  // Get total balance across all accounts
-  Future<double> getTotalBalance({String? userId}) async {
-    final accounts = await getAccounts(userId: userId);
-    return accounts.fold(0.0, (sum, account) => sum + account.balance);
-  }
-
-  // Apply interest (scheduled job, but can be triggered manually for testing)
-  Future<void> applyInterest() async {
-    final token = await _authService.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-
-    await _apiService.post(
-      '/accounts/apply-interest',
-      body: {},
-      token: token,
-    );
   }
 }
 
-// Supporting models for bank-specific data
+// Transaction model
+class Transaction {
 
+  Transaction({
+    required this.id,
+    required this.userId,
+    required this.amount,
+    required this.type,
+    required this.description,
+    required this.status,
+    required this.createdAt,
+    this.fromAccountId,
+    this.toAccountId,
+  });
+
+  factory Transaction.fromMap(Map<String, dynamic> data, String id) {
+    return Transaction(
+      id: id,
+      userId: data['userId'] ?? '',
+      fromAccountId: data['fromAccountId'],
+      toAccountId: data['toAccountId'],
+      amount: (data['amount'] ?? 0).toDouble(),
+      type: TransactionType.values.firstWhere(
+        (e) => e.toString() == 'TransactionType.${data['type']}',
+        orElse: () => TransactionType.transfer,
+      ),
+      description: data['description'] ?? '',
+      status: data['status'] ?? 'completed',
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+    );
+  }
+  final String id;
+  final String userId;
+  final String? fromAccountId;
+  final String? toAccountId;
+  final double amount;
+  final TransactionType type;
+  final String description;
+  final String status;
+  final DateTime createdAt;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'fromAccountId': fromAccountId,
+      'toAccountId': toAccountId,
+      'amount': amount,
+      'type': type.toString().split('.').last,
+      'description': description,
+      'status': status,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+}
+
+// Supporting models
 class TransferResult {
-  final String transactionId;
-  final double fromBalance;
-  final double toBalance;
-  final DateTime timestamp;
 
   TransferResult({
     required this.transactionId,
@@ -356,18 +123,44 @@ class TransferResult {
     required this.toBalance,
     required this.timestamp,
   });
-
-  factory TransferResult.fromJson(Map<String, dynamic> json) {
-    return TransferResult(
-      transactionId: json['transactionId'],
-      fromBalance: (json['fromBalance'] as num).toDouble(),
-      toBalance: (json['toBalance'] as num).toDouble(),
-      timestamp: DateTime.parse(json['timestamp']),
-    );
-  }
+  final String transactionId;
+  final double fromBalance;
+  final double toBalance;
+  final DateTime timestamp;
 }
 
 class WithdrawalRequest {
+
+  WithdrawalRequest({
+    required this.id,
+    required this.userId,
+    required this.accountId,
+    required this.amount,
+    required this.status, required this.requestedAt, this.reason,
+    this.processedAt,
+    this.processedBy,
+    this.rejectionReason,
+  });
+
+  factory WithdrawalRequest.fromMap(Map<String, dynamic> data, String id) {
+    return WithdrawalRequest(
+      id: id,
+      userId: data['userId'] ?? '',
+      accountId: data['accountId'] ?? '',
+      amount: (data['amount'] ?? 0).toDouble(),
+      reason: data['reason'],
+      status: WithdrawalStatus.values.firstWhere(
+        (e) => e.toString() == 'WithdrawalStatus.${data['status']}',
+        orElse: () => WithdrawalStatus.pending,
+      ),
+      requestedAt: (data['requestedAt'] as Timestamp).toDate(),
+      processedAt: data['processedAt'] != null
+          ? (data['processedAt'] as Timestamp).toDate()
+          : null,
+      processedBy: data['processedBy'],
+      rejectionReason: data['rejectionReason'],
+    );
+  }
   final String id;
   final String userId;
   final String accountId;
@@ -379,41 +172,49 @@ class WithdrawalRequest {
   final String? processedBy;
   final String? rejectionReason;
 
-  WithdrawalRequest({
-    required this.id,
-    required this.userId,
-    required this.accountId,
-    required this.amount,
-    this.reason,
-    required this.status,
-    required this.requestedAt,
-    this.processedAt,
-    this.processedBy,
-    this.rejectionReason,
-  });
-
-  factory WithdrawalRequest.fromJson(Map<String, dynamic> json) {
-    return WithdrawalRequest(
-      id: json['id'] ?? json['requestId'],
-      userId: json['userId'],
-      accountId: json['accountId'],
-      amount: (json['amount'] as num).toDouble(),
-      reason: json['reason'],
-      status: WithdrawalStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () => WithdrawalStatus.pending,
-      ),
-      requestedAt: DateTime.parse(json['requestedAt']),
-      processedAt: json['processedAt'] != null
-          ? DateTime.parse(json['processedAt'])
-          : null,
-      processedBy: json['processedBy'],
-      rejectionReason: json['rejectionReason'],
-    );
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'accountId': accountId,
+      'amount': amount,
+      'reason': reason,
+      'status': status.toString().split('.').last,
+      'requestedAt': Timestamp.fromDate(requestedAt),
+      if (processedAt != null) 'processedAt': Timestamp.fromDate(processedAt!),
+      if (processedBy != null) 'processedBy': processedBy,
+      if (rejectionReason != null) 'rejectionReason': rejectionReason,
+    };
   }
 }
 
 class Loan {
+
+  Loan({
+    required this.id,
+    required this.userId,
+    required this.principal,
+    required this.balance,
+    required this.interestRate,
+    required this.issuedAt,
+    required this.payments, this.paidOffAt,
+  });
+
+  factory Loan.fromMap(Map<String, dynamic> data, String id) {
+    return Loan(
+      id: id,
+      userId: data['userId'] ?? '',
+      principal: (data['principal'] ?? 0).toDouble(),
+      balance: (data['balance'] ?? 0).toDouble(),
+      interestRate: (data['interestRate'] ?? 0).toDouble(),
+      issuedAt: (data['issuedAt'] as Timestamp).toDate(),
+      paidOffAt: data['paidOffAt'] != null
+          ? (data['paidOffAt'] as Timestamp).toDate()
+          : null,
+      payments: (data['payments'] as List<dynamic>? ?? [])
+          .map((p) => LoanPayment.fromMap(p))
+          .toList(),
+    );
+  }
   final String id;
   final String userId;
   final double principal;
@@ -423,39 +224,20 @@ class Loan {
   final DateTime? paidOffAt;
   final List<LoanPayment> payments;
 
-  Loan({
-    required this.id,
-    required this.userId,
-    required this.principal,
-    required this.balance,
-    required this.interestRate,
-    required this.issuedAt,
-    this.paidOffAt,
-    required this.payments,
-  });
-
-  factory Loan.fromJson(Map<String, dynamic> json) {
-    return Loan(
-      id: json['id'] ?? json['loanId'],
-      userId: json['userId'],
-      principal: (json['principal'] as num).toDouble(),
-      balance: (json['balance'] as num).toDouble(),
-      interestRate: (json['interestRate'] as num).toDouble(),
-      issuedAt: DateTime.parse(json['issuedAt']),
-      paidOffAt: json['paidOffAt'] != null
-          ? DateTime.parse(json['paidOffAt'])
-          : null,
-      payments: (json['payments'] as List? ?? [])
-          .map((p) => LoanPayment.fromJson(p))
-          .toList(),
-    );
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'principal': principal,
+      'balance': balance,
+      'interestRate': interestRate,
+      'issuedAt': Timestamp.fromDate(issuedAt),
+      if (paidOffAt != null) 'paidOffAt': Timestamp.fromDate(paidOffAt!),
+      'payments': payments.map((p) => p.toMap()).toList(),
+    };
   }
 }
 
 class LoanPayment {
-  final String id;
-  final double amount;
-  final DateTime paymentDate;
 
   LoanPayment({
     required this.id,
@@ -463,20 +245,69 @@ class LoanPayment {
     required this.paymentDate,
   });
 
-  factory LoanPayment.fromJson(Map<String, dynamic> json) {
+  factory LoanPayment.fromMap(Map<String, dynamic> data) {
     return LoanPayment(
-      id: json['id'],
-      amount: (json['amount'] as num).toDouble(),
-      paymentDate: DateTime.parse(json['paymentDate']),
+      id: data['id'] ?? '',
+      amount: (data['amount'] ?? 0).toDouble(),
+      paymentDate: (data['paymentDate'] as Timestamp).toDate(),
     );
+  }
+  final String id;
+  final double amount;
+  final DateTime paymentDate;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'amount': amount,
+      'paymentDate': Timestamp.fromDate(paymentDate),
+    };
   }
 }
 
+class SavingsGoal {
+
+  SavingsGoal({
+    required this.goalName,
+    required this.targetAmount,
+    required this.currentAmount,
+    required this.createdAt, required this.isAchieved, this.targetDate,
+  });
+
+  factory SavingsGoal.fromMap(Map<String, dynamic> data) {
+    return SavingsGoal(
+      goalName: data['goalName'] ?? '',
+      targetAmount: (data['targetAmount'] ?? 0).toDouble(),
+      currentAmount: (data['currentAmount'] ?? 0).toDouble(),
+      targetDate: data['targetDate'] != null
+          ? (data['targetDate'] as Timestamp).toDate()
+          : null,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      isAchieved: data['isAchieved'] ?? false,
+    );
+  }
+  final String goalName;
+  final double targetAmount;
+  final double currentAmount;
+  final DateTime? targetDate;
+  final DateTime createdAt;
+  final bool isAchieved;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'goalName': goalName,
+      'targetAmount': targetAmount,
+      'currentAmount': currentAmount,
+      if (targetDate != null) 'targetDate': Timestamp.fromDate(targetDate!),
+      'createdAt': Timestamp.fromDate(createdAt),
+      'isAchieved': isAchieved,
+    };
+  }
+
+  double get progressPercentage => (currentAmount / targetAmount * 100).clamp(0, 100);
+}
+
 class FamilyBankSummary {
-  final double totalFamilyBalance;
-  final List<ChildBankSummary> childrenSummaries;
-  final int pendingWithdrawals;
-  final double totalLoansOutstanding;
 
   FamilyBankSummary({
     required this.totalFamilyBalance,
@@ -484,26 +315,13 @@ class FamilyBankSummary {
     required this.pendingWithdrawals,
     required this.totalLoansOutstanding,
   });
-
-  factory FamilyBankSummary.fromJson(Map<String, dynamic> json) {
-    return FamilyBankSummary(
-      totalFamilyBalance: (json['totalFamilyBalance'] as num).toDouble(),
-      childrenSummaries: (json['childrenSummaries'] as List)
-          .map((s) => ChildBankSummary.fromJson(s))
-          .toList(),
-      pendingWithdrawals: json['pendingWithdrawals'],
-      totalLoansOutstanding: (json['totalLoansOutstanding'] as num).toDouble(),
-    );
-  }
+  final double totalFamilyBalance;
+  final List<ChildBankSummary> childrenSummaries;
+  final int pendingWithdrawals;
+  final double totalLoansOutstanding;
 }
 
 class ChildBankSummary {
-  final String childId;
-  final String childName;
-  final double totalBalance;
-  final Map<AccountType, double> accountBalances;
-  final bool hasLoan;
-  final double? loanBalance;
 
   ChildBankSummary({
     required this.childId,
@@ -513,67 +331,355 @@ class ChildBankSummary {
     required this.hasLoan,
     this.loanBalance,
   });
+  final String childId;
+  final String childName;
+  final double totalBalance;
+  final Map<AccountType, double> accountBalances;
+  final bool hasLoan;
+  final double? loanBalance;
+}
 
-  factory ChildBankSummary.fromJson(Map<String, dynamic> json) {
-    final balances = <AccountType, double>{};
-    (json['accountBalances'] as Map<String, dynamic>).forEach((key, value) {
-      final accountType = AccountType.values.firstWhere(
-        (e) => e.name == key,
-        orElse: () => AccountType.checking,
-      );
-      balances[accountType] = (value as num).toDouble();
+// Bank Service
+class BankService {
+
+  BankService();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Create a new account for child
+  Future<Account> createAccount({
+    required String userId,
+    required AccountType type,
+    double initialBalance = 0.0,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final account = Account(
+      id: '',
+      userId: userId,
+      type: type,
+      name: '${type.toString().split('.').last.capitalize()} Account',
+      balance: initialBalance,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final docRef = await _db.collection('accounts').add(account.toMap());
+    
+    return Account(
+      id: docRef.id,
+      userId: account.userId,
+      type: account.type,
+      name: account.name,
+      balance: account.balance,
+      createdAt: account.createdAt,
+      updatedAt: account.updatedAt,
+    );
+  }
+
+  // Get all accounts for a user
+  Future<List<Account>> getAccounts({String? userId}) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final targetUserId = userId ?? user.uid;
+
+    final snapshot = await _db
+        .collection('accounts')
+        .where('userId', isEqualTo: targetUserId)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => Account.fromMap(doc.data(), doc.id))
+        .toList();
+  }
+
+  // Get account by ID
+  Future<Account> getAccountById(String accountId) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final doc = await _db.collection('accounts').doc(accountId).get();
+    if (!doc.exists) {
+      throw Exception('Account not found');
+    }
+
+    return Account.fromMap(doc.data()!, doc.id);
+  }
+
+  // Transfer funds between accounts
+  Future<TransferResult> transferFunds({
+    required String fromAccountId,
+    required String toAccountId,
+    required double amount,
+    String? description,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    // Get accounts
+    final fromDoc = await _db.collection('accounts').doc(fromAccountId).get();
+    final toDoc = await _db.collection('accounts').doc(toAccountId).get();
+
+    if (!fromDoc.exists || !toDoc.exists) {
+      throw Exception('Account not found');
+    }
+
+    final fromAccount = Account.fromMap(fromDoc.data()!, fromDoc.id);
+    final toAccount = Account.fromMap(toDoc.data()!, toDoc.id);
+
+    if (fromAccount.balance < amount) {
+      throw Exception('Insufficient funds');
+    }
+
+    // Create transaction record
+    final transaction = Transaction(
+      id: '',
+      userId: user.uid,
+      fromAccountId: fromAccountId,
+      toAccountId: toAccountId,
+      amount: amount,
+      type: TransactionType.transfer,
+      description: description ?? 'Transfer',
+      status: 'completed',
+      createdAt: DateTime.now(),
+    );
+
+    // Perform transfer in a batch
+    final batch = _db.batch();
+    
+    // Add transaction
+    final transactionRef = _db.collection('transactions').doc();
+    batch.set(transactionRef, transaction.toMap());
+    
+    // Update from account
+    batch.update(fromDoc.reference, {
+      'balance': fromAccount.balance - amount,
+      'updatedAt': Timestamp.now(),
+    });
+    
+    // Update to account
+    batch.update(toDoc.reference, {
+      'balance': toAccount.balance + amount,
+      'updatedAt': Timestamp.now(),
     });
 
-    return ChildBankSummary(
-      childId: json['childId'],
-      childName: json['childName'],
-      totalBalance: (json['totalBalance'] as num).toDouble(),
-      accountBalances: balances,
-      hasLoan: json['hasLoan'],
-      loanBalance: json['loanBalance'] != null
-          ? (json['loanBalance'] as num).toDouble()
-          : null,
-    );
-  }
-}
+    await batch.commit();
 
-class SavingsGoal {
-  final String id;
-  final String accountId;
-  final String goalName;
-  final double targetAmount;
-  final double currentAmount;
-  final DateTime? targetDate;
-  final DateTime createdAt;
-  final bool isAchieved;
-
-  SavingsGoal({
-    required this.id,
-    required this.accountId,
-    required this.goalName,
-    required this.targetAmount,
-    required this.currentAmount,
-    this.targetDate,
-    required this.createdAt,
-    required this.isAchieved,
-  });
-
-  factory SavingsGoal.fromJson(Map<String, dynamic> json) {
-    return SavingsGoal(
-      id: json['id'],
-      accountId: json['accountId'],
-      goalName: json['goalName'],
-      targetAmount: (json['targetAmount'] as num).toDouble(),
-      currentAmount: (json['currentAmount'] as num).toDouble(),
-      targetDate: json['targetDate'] != null
-          ? DateTime.parse(json['targetDate'])
-          : null,
-      createdAt: DateTime.parse(json['createdAt']),
-      isAchieved: json['isAchieved'] ?? false,
+    return TransferResult(
+      transactionId: transactionRef.id,
+      fromBalance: fromAccount.balance - amount,
+      toBalance: toAccount.balance + amount,
+      timestamp: DateTime.now(),
     );
   }
 
-  double get progressPercentage => (currentAmount / targetAmount * 100).clamp(0, 100);
+  // Request withdrawal (child)
+  Future<WithdrawalRequest> requestWithdrawal({
+    required String accountId,
+    required double amount,
+    String? reason,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    // Check account balance
+    final account = await getAccountById(accountId);
+    if (account.balance < amount) {
+      throw Exception('Insufficient funds');
+    }
+
+    final request = WithdrawalRequest(
+      id: '',
+      userId: user.uid,
+      accountId: accountId,
+      amount: amount,
+      reason: reason,
+      status: WithdrawalStatus.pending,
+      requestedAt: DateTime.now(),
+    );
+
+    final docRef = await _db.collection('withdrawalRequests').add(request.toMap());
+
+    // Notify parent
+    final userDoc = await _db.collection('users').doc(user.uid).get();
+    final parentId = userDoc.data()?['parentId'];
+    
+    if (parentId != null) {
+      await _db.collection('notifications').add({
+        'userId': parentId,
+        'title': 'Withdrawal Request',
+        'body': '${userDoc.data()?['name'] ?? 'Your child'} requested \$$amount withdrawal',
+        'type': 'withdrawalRequest',
+        'data': {'requestId': docRef.id},
+        'isRead': false,
+        'createdAt': Timestamp.now(),
+      });
+    }
+
+    return WithdrawalRequest(
+      id: docRef.id,
+      userId: request.userId,
+      accountId: request.accountId,
+      amount: request.amount,
+      reason: request.reason,
+      status: request.status,
+      requestedAt: request.requestedAt,
+    );
+  }
+
+  // Approve withdrawal request (parent)
+  Future<void> approveWithdrawal({
+    required String requestId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final requestDoc = await _db.collection('withdrawalRequests').doc(requestId).get();
+    if (!requestDoc.exists) {
+      throw Exception('Request not found');
+    }
+
+    final request = WithdrawalRequest.fromMap(requestDoc.data()!, requestDoc.id);
+    
+    // Get account and check balance
+    final account = await getAccountById(request.accountId);
+    if (account.balance < request.amount) {
+      throw Exception('Insufficient funds');
+    }
+
+    // Update request and account in a batch
+    final batch = _db.batch();
+    
+    // Update request
+    batch.update(requestDoc.reference, {
+      'status': 'approved',
+      'processedAt': Timestamp.now(),
+      'processedBy': user.uid,
+    });
+    
+    // Update account balance
+    batch.update(_db.collection('accounts').doc(request.accountId), {
+      'balance': account.balance - request.amount,
+      'updatedAt': Timestamp.now(),
+    });
+    
+    // Create transaction record
+    final transactionRef = _db.collection('transactions').doc();
+    batch.set(transactionRef, {
+      'userId': request.userId,
+      'fromAccountId': request.accountId,
+      'amount': request.amount,
+      'type': 'withdrawal',
+      'description': 'Withdrawal: ${request.reason ?? 'Cash withdrawal'}',
+      'status': 'completed',
+      'createdAt': Timestamp.now(),
+    });
+
+    await batch.commit();
+  }
+
+  // Get transaction history
+  Future<List<Transaction>> getTransactions({
+    String? accountId,
+    String? userId,
+    DateTime? startDate,
+    DateTime? endDate,
+    TransactionType? type,
+    int? limit,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    Query query = _db.collection('transactions');
+    
+    if (userId != null) {
+      query = query.where('userId', isEqualTo: userId);
+    } else if (accountId != null) {
+      query = query.where('fromAccountId', isEqualTo: accountId);
+    }
+    
+    if (type != null) {
+      query = query.where('type', isEqualTo: type.toString().split('.').last);
+    }
+    
+    if (startDate != null) {
+      query = query.where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+    }
+    
+    if (endDate != null) {
+      query = query.where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+    }
+    
+    query = query.orderBy('createdAt', descending: true);
+    
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
+    final snapshot = await query.get();
+    
+    return snapshot.docs
+        .map((doc) => Transaction.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+        .toList();
+  }
+
+  // Get total balance across all accounts
+  Future<double> getTotalBalance({String? userId}) async {
+    final accounts = await getAccounts(userId: userId);
+    double total = 0.0;
+    for (final account in accounts) {
+      total += account.balance;
+    }
+    return total;
+  }
+
+  // Set savings goal
+  Future<void> setSavingsGoal({
+    required String accountId,
+    required String goalName,
+    required double targetAmount,
+    DateTime? targetDate,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final goal = SavingsGoal(
+      goalName: goalName,
+      targetAmount: targetAmount,
+      currentAmount: 0,
+      targetDate: targetDate,
+      createdAt: DateTime.now(),
+      isAchieved: false,
+    );
+
+    await _db.collection('accounts').doc(accountId).update({
+      'savingsGoal': goal.toMap(),
+      'updatedAt': Timestamp.now(),
+    });
+  }
 }
 
-enum WithdrawalStatus { pending, approved, rejected, cancelled }
+// Extension helper
+extension StringExtension on String {
+  String capitalize() {
+    return '${this[0].toUpperCase()}${substring(1)}';
+  }
+}

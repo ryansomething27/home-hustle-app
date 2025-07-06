@@ -1,0 +1,46 @@
+{
+  "classes": {
+    "AuthService": "frontend/data/services/auth_service.dart",
+    "ApiService": "frontend/data/services/api_service.dart",
+    "NotificationService": "frontend/data/services/notification_service.dart",
+    "JobModel": "frontend/data/models/job_model.dart",
+    "BankModel": "frontend/data/models/bank_model.dart",
+    "UserModel": "frontend/data/models/user_model.dart",
+    "StoreItemModel": "frontend/data/models/store_item_model.dart",
+    "TransactionModel": "frontend/data/models/transaction_model.dart",
+    "AppRouter": "frontend/core/router/app_router.dart"
+  },
+  "providers": {
+    "authProvider": "frontend/core/providers/auth_provider.dart",
+    "jobProvider": "frontend/core/providers/job_provider.dart",
+    "bankProvider": "frontend/core/providers/bank_provider.dart",
+    "notificationProvider": "frontend/core/providers/notification_provider.dart",
+    "themeProvider": "frontend/core/providers/theme_provider.dart"
+  },
+  "widgets": {
+    "CustomButton": "frontend/widgets/custom_button.dart",
+    "LoadingIndicator": "frontend/widgets/loading_indicator.dart",
+    "JobCard": "frontend/widgets/job_card.dart",
+    "BankCard": "frontend/widgets/bank_card.dart",
+    "StoreItemCard": "frontend/widgets/store_item_card.dart",
+    "NotificationTile": "frontend/widgets/notification_tile.dart"
+  },
+  "constants": {
+    "kPrimaryColor": "frontend/core/constants/colors.dart",
+    "kSecondaryColor": "frontend/core/constants/colors.dart",
+    "kApiBaseUrl": "frontend/core/constants/config.dart"
+  },
+  "utils": {
+    "showErrorSnackbar": "frontend/core/utils/snackbar_utils.dart",
+    "formatCurrency": "frontend/core/utils/format_utils.dart",
+    "validators": "frontend/core/utils/validators.dart"
+  },
+  "backend": {
+    "registerUser": "backend/functions/auth/registerUser.js",
+    "loginUser": "backend/functions/auth/loginUser.js",
+    "sendNotification": "backend/functions/notifications/sendNotification.js",
+    "processPayment": "backend/functions/payments/processPayment.js",
+    "createJob": "backend/functions/jobs/createJob.js",
+    "updateJobStatus": "backend/functions/jobs/updateJobStatus.js"
+  }
+}
