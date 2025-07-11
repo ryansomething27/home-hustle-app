@@ -3,37 +3,57 @@
     "AuthService": "frontend/data/services/auth_service.dart",
     "ApiService": "frontend/data/services/api_service.dart",
     "NotificationService": "frontend/data/services/notification_service.dart",
-    "JobModel": "frontend/data/models/job_model.dart",
-    "BankModel": "frontend/data/models/bank_model.dart",
-    "UserModel": "frontend/data/models/user_model.dart",
-    "StoreItemModel": "frontend/data/models/store_item_model.dart",
-    "TransactionModel": "frontend/data/models/transaction_model.dart",
-    "AppRouter": "frontend/core/router/app_router.dart"
+    "BankService": "frontend/data/services/bank_service.dart",
+    "JobService": "frontend/data/services/job_service.dart",
+    "StoreService": "frontend/data/services/store_service.dart",
+    "UserModel": "frontend/data/models/user.dart",
+    "AccountModel": "frontend/data/models/account.dart",
+    "JobModel": "frontend/data/models/job.dart",
+    "NotificationModel": "frontend/data/models/notification.dart",
+    "TransactionModel": "frontend/data/models/transaction.dart",
+    "AppRouter": "frontend/navigation/app_router.dart"
   },
   "providers": {
-    "authProvider": "frontend/core/providers/auth_provider.dart",
-    "jobProvider": "frontend/core/providers/job_provider.dart",
-    "bankProvider": "frontend/core/providers/bank_provider.dart",
-    "notificationProvider": "frontend/core/providers/notification_provider.dart",
-    "themeProvider": "frontend/core/providers/theme_provider.dart"
+    "authProvider": "frontend/data/providers/auth_provider.dart",
+    "jobProvider": "frontend/data/providers/job_provider.dart",
+    "bankProvider": "frontend/data/providers/bank_provider.dart",
+    "notificationProvider": "frontend/data/providers/notification_provider.dart",
+    "storeProvider": "frontend/data/providers/store_provider.dart"
   },
   "widgets": {
     "CustomButton": "frontend/widgets/custom_button.dart",
     "LoadingIndicator": "frontend/widgets/loading_indicator.dart",
     "JobCard": "frontend/widgets/job_card.dart",
-    "BankCard": "frontend/widgets/bank_card.dart",
-    "StoreItemCard": "frontend/widgets/store_item_card.dart",
+    "BalanceCard": "frontend/widgets/balance_card.dart",
+    "StoreItemTile": "frontend/widgets/store_item_tile.dart",
     "NotificationTile": "frontend/widgets/notification_tile.dart"
   },
+  "screens": {
+    "LoginScreen": "frontend/screens/auth/login_screen.dart",
+    "RegisterScreen": "frontend/screens/auth/register_screen.dart",
+    "VerificationScreen": "frontend/screens/auth/verification_screen.dart",
+    "ParentHomeScreen": "frontend/screens/parent_dashboard/parent_home_screen.dart",
+    "CreateJobScreen": "frontend/screens/parent_dashboard/create_job_screen.dart",
+    "ManageJobsScreen": "frontend/screens/parent_dashboard/manage_jobs_screen.dart",
+    "ParentBankScreen": "frontend/screens/parent_dashboard/bank_screen.dart",
+    "FamilyStoreScreenParent": "frontend/screens/parent_dashboard/family_store_screen.dart",
+    "NotificationsScreenParent": "frontend/screens/parent_dashboard/notifications_screen.dart",
+    "ChildHomeScreen": "frontend/screens/child_dashboard/child_home_screen.dart",
+    "ChildBankScreen": "frontend/screens/child_dashboard/bank_screen.dart",
+    "MyJobsScreen": "frontend/screens/child_dashboard/my_jobs_screen.dart",
+    "ResumeScreen": "frontend/screens/child_dashboard/resume_screen.dart",
+    "NotificationsScreenChild": "frontend/screens/child_dashboard/notifications_screen.dart",
+    "SettingsScreen": "frontend/screens/settings/settings_screen.dart",
+    "AccountSettingsScreen": "frontend/screens/settings/account_settings_screen.dart"
+  },
   "constants": {
-    "kPrimaryColor": "frontend/core/constants/colors.dart",
-    "kSecondaryColor": "frontend/core/constants/colors.dart",
-    "kApiBaseUrl": "frontend/core/constants/config.dart"
+    "Constants": "frontend/core/constants.dart",
+    "Theme": "frontend/core/theme.dart"
   },
   "utils": {
-    "showErrorSnackbar": "frontend/core/utils/snackbar_utils.dart",
-    "formatCurrency": "frontend/core/utils/format_utils.dart",
-    "validators": "frontend/core/utils/validators.dart"
+    "SnackbarUtils": "frontend/core/utils/snackbar_utils.dart",
+    "FormatUtils": "frontend/core/utils/format_utils.dart",
+    "Validators": "frontend/core/utils/validators.dart"
   },
   "backend": {
     "registerUser": "backend/functions/auth/registerUser.js",
