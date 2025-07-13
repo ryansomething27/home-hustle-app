@@ -35,9 +35,7 @@ class ApiService {
       _dio.interceptors.add(LogInterceptor(
         requestBody: true,
         responseBody: true,
-        requestHeader: true,
         responseHeader: false,
-        error: true,
       ));
     }
   }
@@ -67,7 +65,7 @@ class ApiService {
   // POST request
   Future<Response> post(
     String path, {
-    dynamic data,
+    data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     CancelToken? cancelToken,
@@ -91,7 +89,7 @@ class ApiService {
   // PUT request
   Future<Response> put(
     String path, {
-    dynamic data,
+    data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     CancelToken? cancelToken,
@@ -113,7 +111,7 @@ class ApiService {
   // PATCH request
   Future<Response> patch(
     String path, {
-    dynamic data,
+    data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     CancelToken? cancelToken,
@@ -135,7 +133,7 @@ class ApiService {
   // DELETE request
   Future<Response> delete(
     String path, {
-    dynamic data,
+    data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     CancelToken? cancelToken,
@@ -250,7 +248,7 @@ class _AuthInterceptor extends Interceptor {
 class _ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException error, ErrorInterceptorHandler handler) {
-    String message = kGenericErrorMessage;
+    var message = kGenericErrorMessage;
 
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||

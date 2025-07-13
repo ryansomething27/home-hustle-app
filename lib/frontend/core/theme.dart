@@ -15,27 +15,27 @@ class AppTheme {
     // Color Scheme
     colorScheme: ColorScheme.fromSeed(
       seedColor: kPrimaryColor,
-      brightness: Brightness.light,
       primary: kPrimaryColor,
       secondary: kSecondaryColor,
       error: kErrorColor,
       surface: Colors.white,
-      background: const Color(0xFFF8F9FA),
+      // background: const Color(0xFFF8F9FA),  <-- Removed deprecated
     ),
+
     
     // App Bar Theme
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       elevation: 0,
       centerTitle: true,
       backgroundColor: Colors.white,
       foregroundColor: Colors.black87,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
-      titleTextStyle: const TextStyle(
+      titleTextStyle: TextStyle(
         color: Colors.black87,
         fontSize: 20,
         fontWeight: FontWeight.w600,
       ),
-      iconTheme: const IconThemeData(
+      iconTheme: IconThemeData(
         color: Colors.black87,
       ),
     ),
@@ -76,7 +76,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(kDefaultBorderRadius),
         ),
-        side: BorderSide(color: kPrimaryColor, width: 1.5),
+        side: const BorderSide(color: kPrimaryColor, width: 1.5),
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -108,19 +108,19 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+        borderSide: BorderSide(color: Colors.grey[300]!),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: kPrimaryColor, width: 2),
+        borderSide: const BorderSide(color: kPrimaryColor, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: kErrorColor, width: 1),
+        borderSide: const BorderSide(color: kErrorColor),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: kErrorColor, width: 2),
+        borderSide: const BorderSide(color: kErrorColor, width: 2),
       ),
       labelStyle: TextStyle(
         color: Colors.grey[700],
@@ -281,22 +281,22 @@ class AppTheme {
       secondary: kSecondaryColor,
       error: kErrorColor,
       surface: const Color(0xFF1E1E1E),
-      background: const Color(0xFF121212),
     ),
+
     
     // App Bar Theme
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       elevation: 0,
       centerTitle: true,
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: Color(0xFF1E1E1E),
       foregroundColor: Colors.white,
       systemOverlayStyle: SystemUiOverlayStyle.light,
-      titleTextStyle: const TextStyle(
+      titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
         fontWeight: FontWeight.w600,
       ),
-      iconTheme: const IconThemeData(
+      iconTheme: IconThemeData(
         color: Colors.white,
       ),
     ),
@@ -337,7 +337,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(kDefaultBorderRadius),
         ),
-        side: BorderSide(color: kPrimaryColor, width: 1.5),
+        side: const BorderSide(color: kPrimaryColor, width: 1.5),
         textStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -370,19 +370,19 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: Colors.grey[700]!, width: 1),
+        borderSide: BorderSide(color: Colors.grey[700]!),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: kPrimaryColor, width: 2),
+        borderSide: const BorderSide(color: kPrimaryColor, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: kErrorColor, width: 1),
+        borderSide: const BorderSide(color: kErrorColor),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        borderSide: BorderSide(color: kErrorColor, width: 2),
+        borderSide: const BorderSide(color: kErrorColor, width: 2),
       ),
       labelStyle: TextStyle(
         color: Colors.grey[400],
