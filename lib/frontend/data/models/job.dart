@@ -40,7 +40,7 @@ class JobModel { // For additional flexible data
       id: map['id'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      wage: (map['wage'] ?? 0).toDouble(),
+      wage: (map['wage'] as num?)?.toDouble() ?? 0.0,
       wageType: map['wageType'] ?? 'fixed',
       jobType: map['jobType'] ?? 'public',
       category: map['category'] ?? 'Other',
@@ -64,8 +64,8 @@ class JobModel { // For additional flexible data
       completedAt: map['completedAt'] != null 
           ? DateTime.parse(map['completedAt']) 
           : null,
-      estimatedDuration: map['estimatedDuration']?.toInt(),
-      actualDuration: map['actualDuration']?.toInt(),
+      estimatedDuration: (map['estimatedDuration'] as num?)?.toInt(),
+      actualDuration: (map['actualDuration'] as num?)?.toInt(),
       location: map['location'],
       requiredSkills: map['requiredSkills'] != null 
           ? List<String>.from(map['requiredSkills']) 
@@ -73,12 +73,12 @@ class JobModel { // For additional flexible data
       imageUrls: map['imageUrls'] != null 
           ? List<String>.from(map['imageUrls']) 
           : null,
-      maxApplicants: map['maxApplicants']?.toInt(),
-      currentApplicants: map['currentApplicants']?.toInt() ?? 0,
+      maxApplicants: (map['maxApplicants'] as num?)?.toInt(),
+      currentApplicants: (map['currentApplicants'] as num?)?.toInt() ?? 0,
       isUrgent: map['isUrgent'] ?? false,
       cancellationReason: map['cancellationReason'],
       completionNotes: map['completionNotes'],
-      rating: map['rating']?.toDouble(),
+      rating: (map['rating'] as num?)?.toDouble(),
       reviewNotes: map['reviewNotes'],
       metadata: map['metadata'] != null 
           ? Map<String, dynamic>.from(map['metadata']) 

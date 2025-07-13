@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -33,7 +34,7 @@ class AuthService {
       }
       return null;
     } on Exception catch (e) {
-      print('Error getting current user: $e');
+      debugPrint('Error getting current user: $e');
       return null;
     }
   }
@@ -236,7 +237,7 @@ class AuthService {
       
       return await user.getIdToken();
     } on Exception catch (e) {
-      print('Error getting ID token: $e');
+      debugPrint('Error getting ID token: $e');
       return null;
     }
   }
@@ -251,7 +252,7 @@ class AuthService {
       
       return await user.getIdToken(true); // Force refresh
     } on Exception catch (e) {
-      print('Error refreshing token: $e');
+      debugPrint('Error refreshing token: $e');
       return null;
     }
   }
@@ -321,7 +322,7 @@ class AuthService {
   }
   
   // Set first time user flag
-  Future<void> setFirstTimeUser(bool isFirstTime) async {
+  Future<void> setFirstTimeUser({required bool isFirstTime}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isFirstTimeKey, isFirstTime);
   }

@@ -231,7 +231,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // Set first time user flag
   Future<void> setFirstTimeUser({required bool isFirstTime}) async {
-    await _authService.setFirstTimeUser(isFirstTime);
+    await _authService.setFirstTimeUser(isFirstTime: true);
     state = state.copyWith(isFirstTimeUser: isFirstTime);
   }
 

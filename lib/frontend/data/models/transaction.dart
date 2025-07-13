@@ -29,7 +29,7 @@ class TransactionModel {
       id: map['id'] ?? '',
       type: map['type'] ?? '',
       status: map['status'] ?? 'pending',
-      amount: (map['amount'] ?? 0).toDouble(),
+      amount: (map['amount'] as num? ?? 0).toDouble(),
       currency: map['currency'] ?? 'USD',
       fromAccountId: map['fromAccountId'] ?? '',
       fromAccountName: map['fromAccountName'] ?? '',
@@ -271,9 +271,9 @@ class TransactionSummary {
     return TransactionSummary(
       startDate: DateTime.parse(map['startDate']),
       endDate: DateTime.parse(map['endDate']),
-      totalIncome: (map['totalIncome'] ?? 0).toDouble(),
-      totalExpenses: (map['totalExpenses'] ?? 0).toDouble(),
-      netAmount: (map['netAmount'] ?? 0).toDouble(),
+      totalIncome: (map['totalIncome'] as num? ?? 0).toDouble(),
+      totalExpenses: (map['totalExpenses'] as num? ?? 0).toDouble(),
+      netAmount: (map['netAmount'] as num? ?? 0).toDouble(),
       transactionCount: map['transactionCount'] ?? 0,
       incomeByCategory: Map<String, double>.from(
         map['incomeByCategory'] ?? {},
