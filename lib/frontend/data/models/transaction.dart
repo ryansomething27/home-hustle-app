@@ -2,6 +2,71 @@ import 'dart:convert';
 
 /// Model representing a financial transaction in the Home Hustle app
 class TransactionModel {
+
+  TransactionModel({
+    required this.id,
+    required this.type,
+    required this.status,
+    required this.amount,
+    required this.fromAccountId, required this.fromAccountName, required this.fromUserId, required this.fromUserName, required this.toAccountId, required this.toAccountName, required this.toUserId, required this.toUserName, required this.description, required this.createdAt, this.currency = 'USD',
+    this.completedAt,
+    this.referenceType,
+    this.referenceId,
+    this.categoryId,
+    this.categoryName,
+    this.notes,
+    this.failureReason,
+    this.metadata,
+    this.receiptUrl,
+    this.isRecurring = false,
+    this.recurringSchedule,
+    this.nextRecurringDate,
+  });
+
+  /// Create model from map
+  factory TransactionModel.fromMap(Map<String, dynamic> map) {
+    return TransactionModel(
+      id: map['id'] ?? '',
+      type: map['type'] ?? '',
+      status: map['status'] ?? 'pending',
+      amount: (map['amount'] ?? 0).toDouble(),
+      currency: map['currency'] ?? 'USD',
+      fromAccountId: map['fromAccountId'] ?? '',
+      fromAccountName: map['fromAccountName'] ?? '',
+      fromUserId: map['fromUserId'] ?? '',
+      fromUserName: map['fromUserName'] ?? '',
+      toAccountId: map['toAccountId'] ?? '',
+      toAccountName: map['toAccountName'] ?? '',
+      toUserId: map['toUserId'] ?? '',
+      toUserName: map['toUserName'] ?? '',
+      description: map['description'] ?? '',
+      createdAt: map['createdAt'] != null 
+          ? DateTime.parse(map['createdAt']) 
+          : DateTime.now(),
+      completedAt: map['completedAt'] != null 
+          ? DateTime.parse(map['completedAt']) 
+          : null,
+      referenceType: map['referenceType'],
+      referenceId: map['referenceId'],
+      categoryId: map['categoryId'],
+      categoryName: map['categoryName'],
+      notes: map['notes'],
+      failureReason: map['failureReason'],
+      metadata: map['metadata'] != null 
+          ? Map<String, dynamic>.from(map['metadata']) 
+          : null,
+      receiptUrl: map['receiptUrl'],
+      isRecurring: map['isRecurring'] ?? false,
+      recurringSchedule: map['recurringSchedule'],
+      nextRecurringDate: map['nextRecurringDate'] != null 
+          ? DateTime.parse(map['nextRecurringDate']) 
+          : null,
+    );
+  }
+
+  /// Create model from JSON string
+  factory TransactionModel.fromJson(String source) => 
+      TransactionModel.fromMap(json.decode(source));
   final String id;
   final String type; // 'job_payment', 'store_purchase', 'store_credit', 'transfer', 'adjustment', 'withdrawal'
   final String status; // 'pending', 'completed', 'failed', 'cancelled'
@@ -29,36 +94,6 @@ class TransactionModel {
   final bool isRecurring;
   final String? recurringSchedule; // 'weekly', 'monthly', etc.
   final DateTime? nextRecurringDate;
-
-  TransactionModel({
-    required this.id,
-    required this.type,
-    required this.status,
-    required this.amount,
-    this.currency = 'USD',
-    required this.fromAccountId,
-    required this.fromAccountName,
-    required this.fromUserId,
-    required this.fromUserName,
-    required this.toAccountId,
-    required this.toAccountName,
-    required this.toUserId,
-    required this.toUserName,
-    required this.description,
-    required this.createdAt,
-    this.completedAt,
-    this.referenceType,
-    this.referenceId,
-    this.categoryId,
-    this.categoryName,
-    this.notes,
-    this.failureReason,
-    this.metadata,
-    this.receiptUrl,
-    this.isRecurring = false,
-    this.recurringSchedule,
-    this.nextRecurringDate,
-  });
 
   /// Computed property to check if transaction is pending
   bool get isPending => status == 'pending';
@@ -134,53 +169,8 @@ class TransactionModel {
     };
   }
 
-  /// Create model from map
-  factory TransactionModel.fromMap(Map<String, dynamic> map) {
-    return TransactionModel(
-      id: map['id'] ?? '',
-      type: map['type'] ?? '',
-      status: map['status'] ?? 'pending',
-      amount: (map['amount'] ?? 0).toDouble(),
-      currency: map['currency'] ?? 'USD',
-      fromAccountId: map['fromAccountId'] ?? '',
-      fromAccountName: map['fromAccountName'] ?? '',
-      fromUserId: map['fromUserId'] ?? '',
-      fromUserName: map['fromUserName'] ?? '',
-      toAccountId: map['toAccountId'] ?? '',
-      toAccountName: map['toAccountName'] ?? '',
-      toUserId: map['toUserId'] ?? '',
-      toUserName: map['toUserName'] ?? '',
-      description: map['description'] ?? '',
-      createdAt: map['createdAt'] != null 
-          ? DateTime.parse(map['createdAt']) 
-          : DateTime.now(),
-      completedAt: map['completedAt'] != null 
-          ? DateTime.parse(map['completedAt']) 
-          : null,
-      referenceType: map['referenceType'],
-      referenceId: map['referenceId'],
-      categoryId: map['categoryId'],
-      categoryName: map['categoryName'],
-      notes: map['notes'],
-      failureReason: map['failureReason'],
-      metadata: map['metadata'] != null 
-          ? Map<String, dynamic>.from(map['metadata']) 
-          : null,
-      receiptUrl: map['receiptUrl'],
-      isRecurring: map['isRecurring'] ?? false,
-      recurringSchedule: map['recurringSchedule'],
-      nextRecurringDate: map['nextRecurringDate'] != null 
-          ? DateTime.parse(map['nextRecurringDate']) 
-          : null,
-    );
-  }
-
   /// Convert model to JSON string
   String toJson() => json.encode(toMap());
-
-  /// Create model from JSON string
-  factory TransactionModel.fromJson(String source) => 
-      TransactionModel.fromMap(json.decode(source));
 
   /// Create a copy of the model with updated fields
   TransactionModel copyWith({
@@ -245,7 +235,9 @@ class TransactionModel {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
   
     return other is TransactionModel && other.id == id;
   }
@@ -261,15 +253,6 @@ class TransactionModel {
 
 /// Model representing a transaction summary for reporting
 class TransactionSummary {
-  final DateTime startDate;
-  final DateTime endDate;
-  final double totalIncome;
-  final double totalExpenses;
-  final double netAmount;
-  final int transactionCount;
-  final Map<String, double> incomeByCategory;
-  final Map<String, double> expensesByCategory;
-  final Map<String, int> transactionCountByType;
 
   TransactionSummary({
     required this.startDate,
@@ -282,21 +265,6 @@ class TransactionSummary {
     required this.expensesByCategory,
     required this.transactionCountByType,
   });
-
-  /// Convert model to map
-  Map<String, dynamic> toMap() {
-    return {
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
-      'totalIncome': totalIncome,
-      'totalExpenses': totalExpenses,
-      'netAmount': netAmount,
-      'transactionCount': transactionCount,
-      'incomeByCategory': incomeByCategory,
-      'expensesByCategory': expensesByCategory,
-      'transactionCountByType': transactionCountByType,
-    };
-  }
 
   /// Create model from map
   factory TransactionSummary.fromMap(Map<String, dynamic> map) {
@@ -319,10 +287,34 @@ class TransactionSummary {
     );
   }
 
-  /// Convert model to JSON string
-  String toJson() => json.encode(toMap());
-
   /// Create model from JSON string
   factory TransactionSummary.fromJson(String source) => 
       TransactionSummary.fromMap(json.decode(source));
+  final DateTime startDate;
+  final DateTime endDate;
+  final double totalIncome;
+  final double totalExpenses;
+  final double netAmount;
+  final int transactionCount;
+  final Map<String, double> incomeByCategory;
+  final Map<String, double> expensesByCategory;
+  final Map<String, int> transactionCountByType;
+
+  /// Convert model to map
+  Map<String, dynamic> toMap() {
+    return {
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
+      'totalIncome': totalIncome,
+      'totalExpenses': totalExpenses,
+      'netAmount': netAmount,
+      'transactionCount': transactionCount,
+      'incomeByCategory': incomeByCategory,
+      'expensesByCategory': expensesByCategory,
+      'transactionCountByType': transactionCountByType,
+    };
+  }
+
+  /// Convert model to JSON string
+  String toJson() => json.encode(toMap());
 }

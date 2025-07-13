@@ -229,8 +229,111 @@
       ],
       "dependencies": ["AccountModel", "TransactionModel", "TransactionSummary", "SavingsGoal", "AccountLimits", "UserModel", "ApiService", "AuthService", "Constants"]
     },
-    "JobService": "frontend/data/services/job_service.dart",
-    "StoreService": "frontend/data/services/store_service.dart",
+    "JobService": {
+      "path": "frontend/data/services/job_service.dart",
+      "description": "Manages job lifecycle including creation, applications, assignments, completion, and reviews for both family and public jobs.",
+      "classes": ["JobService"],
+      "singleton": true,
+      "methods": [
+        { "name": "createJob", "parameters": ["required String title", "required String description", "required double wage", "required String wageType", "required String jobType", "required String category", "String? location", "DateTime? startDate", "DateTime? endDate", "int? estimatedDuration", "List<String>? requiredSkills", "List<String>? imageUrls", "int? maxApplicants", "bool isUrgent = false", "String? assignToChildId"], "returnType": "Future<JobModel>" },
+        { "name": "getJobs", "parameters": ["String? status", "String? jobType", "String? category", "String? createdById", "String? assignedToId", "bool includeExpired = false", "int page = 1", "int limit = 20"], "returnType": "Future<List<JobModel>>" },
+        { "name": "getJob", "parameters": ["String jobId"], "returnType": "Future<JobModel>" },
+        { "name": "updateJob", "parameters": ["required String jobId", "String? title", "String? description", "double? wage", "String? wageType", "String? category", "String? location", "DateTime? startDate", "DateTime? endDate", "int? estimatedDuration", "List<String>? requiredSkills", "List<String>? imageUrls", "int? maxApplicants", "bool? isUrgent"], "returnType": "Future<JobModel>" },
+        { "name": "deleteJob", "parameters": ["String jobId"], "returnType": "Future<void>" },
+        { "name": "applyToJob", "parameters": ["required String jobId", "String? applicationNote"], "returnType": "Future<JobApplication>" },
+        { "name": "getMyApplications", "parameters": ["String? status", "int page = 1", "int limit = 20"], "returnType": "Future<List<JobApplication>>" },
+        { "name": "getJobApplications", "parameters": ["required String jobId", "String? status"], "returnType": "Future<List<JobApplication>>" },
+        { "name": "respondToApplication", "parameters": ["required String jobId", "required String applicationId", "required bool accept", "String? rejectionReason"], "returnType": "Future<JobApplication>" },
+        { "name": "assignJob", "parameters": ["required String jobId", "required String childId"], "returnType": "Future<JobModel>" },
+        { "name": "startJob", "parameters": ["String jobId"], "returnType": "Future<JobModel>" },
+        { "name": "completeJob", "parameters": ["required String jobId", "String? completionNotes", "int? actualDuration"], "returnType": "Future<JobModel>" },
+        { "name": "approveJobCompletion", "parameters": ["required String jobId", "required bool approve", "double? rating", "String? reviewNotes", "String? rejectionReason"], "returnType": "Future<JobModel>" },
+        { "name": "cancelJob", "parameters": ["required String jobId", "required String reason"], "returnType": "Future<JobModel>" },
+        { "name": "getActiveJobs", "parameters": [], "returnType": "Future<List<JobModel>>" },
+        { "name": "getCompletedJobs", "parameters": ["DateTime? startDate", "DateTime? endDate", "int page = 1", "int limit = 20"], "returnType": "Future<List<JobModel>>" },
+        { "name": "getJobStatistics", "parameters": ["DateTime? startDate", "DateTime? endDate"], "returnType": "Future<Map<String, dynamic>>" },
+        { "name": "getRecommendedJobs", "parameters": ["int limit = 10"], "returnType": "Future<List<JobModel>>" },
+        { "name": "getJobCategories", "parameters": [], "returnType": "Future<List<String>>" }
+      ],
+      "imports": [
+        "package:flutter/foundation.dart",
+        "../../core/constants.dart",
+        "../models/job.dart",
+        "../models/user.dart",
+        "api_service.dart",
+        "auth_service.dart"
+      ],
+      "apiEndpoints": [
+        "/jobs/create",
+        "/jobs",
+        "/jobs/:id",
+        "/jobs/:id/apply",
+        "/jobs/applications/my",
+        "/jobs/:id/applications",
+        "/jobs/:id/applications/:applicationId/respond",
+        "/jobs/:id/assign",
+        "/jobs/:id/start",
+        "/jobs/:id/complete",
+        "/jobs/:id/approve-completion",
+        "/jobs/:id/cancel",
+        "/jobs/active",
+        "/jobs/completed",
+        "/jobs/statistics",
+        "/jobs/recommended",
+        "/jobs/categories"
+      ],
+      "dependencies": ["JobModel", "JobApplication", "UserModel", "ApiService", "AuthService", "Constants"]
+    },
+    "StoreService": {
+      "path": "frontend/data/services/store_service.dart",
+      "description": "Manages the family store including item management, purchases, approvals, fulfillment, and reviews. Adults create and manage items while children purchase them.",
+      "classes": ["StoreService"],
+      "singleton": true,
+      "methods": [
+        { "name": "getFamilyStoreItems", "parameters": ["String? category", "bool activeOnly = true", "String? itemType"], "returnType": "Future<List<StoreItem>>" },
+        { "name": "getStoreItem", "parameters": ["String itemId"], "returnType": "Future<StoreItem>" },
+        { "name": "createStoreItem", "parameters": ["required String name", "required String description", "required double price", "required String category", "required String itemType", "String? imageUrl", "int? stock", "int? ageRestriction", "DateTime? availableFrom", "DateTime? availableUntil", "int? maxPurchasesPerChild", "bool requiresApproval = false", "List<String>? tags"], "returnType": "Future<StoreItem>" },
+        { "name": "updateStoreItem", "parameters": ["required String itemId", "String? name", "String? description", "double? price", "String? category", "String? imageUrl", "bool? isActive", "int? stock", "int? ageRestriction", "DateTime? availableFrom", "DateTime? availableUntil", "int? maxPurchasesPerChild", "bool? requiresApproval", "List<String>? tags"], "returnType": "Future<StoreItem>" },
+        { "name": "deleteStoreItem", "parameters": ["String itemId"], "returnType": "Future<void>" },
+        { "name": "purchaseItem", "parameters": ["required String itemId", "int quantity = 1", "String? notes"], "returnType": "Future<StorePurchase>" },
+        { "name": "getPurchaseHistory", "parameters": ["String? purchaserId", "String? status", "DateTime? startDate", "DateTime? endDate", "int page = 1", "int limit = 20"], "returnType": "Future<List<StorePurchase>>" },
+        { "name": "getPurchase", "parameters": ["String purchaseId"], "returnType": "Future<StorePurchase>" },
+        { "name": "approvePurchase", "parameters": ["required String purchaseId", "bool approve = true", "String? reason"], "returnType": "Future<StorePurchase>" },
+        { "name": "fulfillPurchase", "parameters": ["required String purchaseId", "String? fulfillmentNotes"], "returnType": "Future<StorePurchase>" },
+        { "name": "cancelPurchase", "parameters": ["required String purchaseId", "String? reason"], "returnType": "Future<StorePurchase>" },
+        { "name": "ratePurchase", "parameters": ["required String purchaseId", "required double rating", "String? review"], "returnType": "Future<StorePurchase>" },
+        { "name": "getPendingPurchases", "parameters": [], "returnType": "Future<List<StorePurchase>>" },
+        { "name": "getChildPurchaseCount", "parameters": ["required String itemId", "required String childId"], "returnType": "Future<int>" },
+        { "name": "getStoreCategories", "parameters": [], "returnType": "Future<List<String>>" },
+        { "name": "getStoreStatistics", "parameters": ["DateTime? startDate", "DateTime? endDate"], "returnType": "Future<Map<String, dynamic>>" }
+      ],
+      "imports": [
+        "package:flutter/foundation.dart",
+        "../../core/constants.dart",
+        "../models/store.dart",
+        "../models/transaction.dart",
+        "../models/user.dart",
+        "api_service.dart",
+        "auth_service.dart"
+      ],
+      "apiEndpoints": [
+        "/store/family-items",
+        "/store/items/:id",
+        "/store/items",
+        "/store/purchase",
+        "/store/purchases",
+        "/store/purchases/:id",
+        "/store/purchases/:id/approve",
+        "/store/purchases/:id/fulfill",
+        "/store/purchases/:id/cancel",
+        "/store/purchases/:id/rate",
+        "/store/purchases/pending",
+        "/store/items/:id/purchase-count",
+        "/store/categories",
+        "/store/statistics"
+      ],
+      "dependencies": ["StoreItem", "StorePurchase", "TransactionModel", "UserModel", "ApiService", "AuthService", "Constants"]
+    },
     "AccountModel": {
       "path": "frontend/data/models/account.dart",
       "description": "Model representing bank accounts in the Home Hustle app including primary, savings, spending, and goals accounts with limits and savings goal tracking.",
@@ -336,7 +439,6 @@
       "imports": ["dart:convert"],
       "dependencies": []
     },
-
     "JobModel": {
       "path": "frontend/data/models/job.dart",
       "description": "Model representing a job posting in the Home Hustle app with support for both family and public jobs, wage types, applications, and reviews.",
@@ -578,6 +680,102 @@
       "imports": ["dart:convert"],
       "dependencies": []
     },
+    "StoreItem": {
+      "path": "frontend/data/models/store.dart",
+      "description": "Model representing store items that parents create for children to purchase with virtual money, including rewards, privileges, experiences, and physical items.",
+      "classes": ["StoreItem"],
+      "fields": [
+        { "name": "id", "type": "String", "required": true },
+        { "name": "name", "type": "String", "required": true },
+        { "name": "description", "type": "String", "required": true },
+        { "name": "price", "type": "double", "required": true },
+        { "name": "category", "type": "String", "required": true },
+        { "name": "imageUrl", "type": "String?", "required": false },
+        { "name": "isActive", "type": "bool", "default": "true" },
+        { "name": "stock", "type": "int?", "required": false },
+        { "name": "createdById", "type": "String", "required": true },
+        { "name": "createdByName", "type": "String", "required": true },
+        { "name": "familyId", "type": "String", "required": true },
+        { "name": "createdAt", "type": "DateTime", "required": true },
+        { "name": "updatedAt", "type": "DateTime", "required": true },
+        { "name": "itemType", "type": "String", "required": true },
+        { "name": "ageRestriction", "type": "int?", "required": false },
+        { "name": "availableFrom", "type": "DateTime?", "required": false },
+        { "name": "availableUntil", "type": "DateTime?", "required": false },
+        { "name": "maxPurchasesPerChild", "type": "int?", "required": false },
+        { "name": "requiresApproval", "type": "bool", "default": "false" },
+        { "name": "tags", "type": "List<String>?", "required": false },
+        { "name": "metadata", "type": "Map<String, dynamic>?", "required": false }
+      ],
+      "computedProperties": [
+        { "name": "isAvailable", "type": "bool", "getter": true },
+        { "name": "hasStock", "type": "bool", "getter": true },
+        { "name": "isLimitedStock", "type": "bool", "getter": true },
+        { "name": "isTimeLimited", "type": "bool", "getter": true }
+      ],
+      "methods": [
+        { "name": "canBePurchasedBy", "parameters": ["String childId", "int childAge", "int existingPurchaseCount"], "returnType": "bool" },
+        { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+        { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "StoreItem", "static": true },
+        { "name": "toJson", "parameters": [], "returnType": "String" },
+        { "name": "fromJson", "parameters": ["String source"], "returnType": "StoreItem", "static": true },
+        { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "StoreItem" }
+      ],
+      "imports": ["dart:convert"],
+      "dependencies": []
+    },
+    "StorePurchase": {
+      "path": "frontend/data/models/store.dart",
+      "description": "Model representing a purchase made by a child from the family store, tracking approval and fulfillment status.",
+      "classes": ["StorePurchase"],
+      "fields": [
+        { "name": "id", "type": "String", "required": true },
+        { "name": "itemId", "type": "String", "required": true },
+        { "name": "itemName", "type": "String", "required": true },
+        { "name": "purchaserId", "type": "String", "required": true },
+        { "name": "purchaserName", "type": "String", "required": true },
+        { "name": "price", "type": "double", "required": true },
+        { "name": "quantity", "type": "int", "required": true },
+        { "name": "status", "type": "String", "required": true },
+        { "name": "purchasedAt", "type": "DateTime", "required": true },
+        { "name": "approvedAt", "type": "DateTime?", "required": false },
+        { "name": "approvedById", "type": "String?", "required": false },
+        { "name": "approvedByName", "type": "String?", "required": false },
+        { "name": "fulfilledAt", "type": "DateTime?", "required": false },
+        { "name": "fulfilledById", "type": "String?", "required": false },
+        { "name": "fulfilledByName", "type": "String?", "required": false },
+        { "name": "transactionId", "type": "String", "required": true },
+        { "name": "notes", "type": "String?", "required": false },
+        { "name": "fulfillmentNotes", "type": "String?", "required": false },
+        { "name": "rating", "type": "double?", "required": false },
+        { "name": "review", "type": "String?", "required": false },
+        { "name": "familyId", "type": "String", "required": true },
+        { "name": "itemSnapshot", "type": "Map<String, dynamic>?", "required": false },
+        { "name": "metadata", "type": "Map<String, dynamic>?", "required": false }
+      ],
+      "computedProperties": [
+        { "name": "isPending", "type": "bool", "getter": true },
+        { "name": "isApproved", "type": "bool", "getter": true },
+        { "name": "isFulfilled", "type": "bool", "getter": true },
+        { "name": "isCancelled", "type": "bool", "getter": true },
+        { "name": "canBeApproved", "type": "bool", "getter": true },
+        { "name": "canBeFulfilled", "type": "bool", "getter": true },
+        { "name": "canBeCancelled", "type": "bool", "getter": true },
+        { "name": "canBeReviewed", "type": "bool", "getter": true },
+        { "name": "totalPrice", "type": "double", "getter": true },
+        { "name": "timeToPurchase", "type": "Duration?", "getter": true },
+        { "name": "timeToFulfillment", "type": "Duration?", "getter": true }
+      ],
+      "methods": [
+        { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+        { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "StorePurchase", "static": true },
+        { "name": "toJson", "parameters": [], "returnType": "String" },
+        { "name": "fromJson", "parameters": ["String source"], "returnType": "StorePurchase", "static": true },
+        { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "StorePurchase" }
+      ],
+      "imports": ["dart:convert"],
+      "dependencies": []
+    },
     "AppRouter": "frontend/navigation/app_router.dart"
   },
   "providers": {
@@ -655,27 +853,27 @@
         { "name": "kJobCategories", "type": "List<String>", "items": ["Cleaning", "Yard Work", "Pet Care", "Organizing", "Errands", "Tech Help", "Tutoring", "Other"] }
       ],
       "imports": ["package:flutter/material.dart"]
-  },
-  "Theme": {
-    "path": "frontend/core/theme.dart",
-    "description": "App theme configuration for Material Design 3 with light/dark themes and role-specific customizations for adults and children.",
-    "classes": ["AppTheme"],
-    "properties": [
-      { "name": "lightTheme", "type": "ThemeData", "static": true },
-      { "name": "darkTheme", "type": "ThemeData", "static": true }
-    ],
-    "methods": [
-      { "name": "getTheme", "parameters": ["Brightness brightness"], "returnType": "ThemeData", "static": true },
-      { "name": "getAdultTheme", "parameters": ["required Brightness brightness"], "returnType": "ThemeData", "static": true },
-      { "name": "getChildTheme", "parameters": ["required Brightness brightness"], "returnType": "ThemeData", "static": true }
-    ],
-    "imports": [
-      "package:flutter/material.dart",
-      "package:flutter/services.dart",
-      "constants.dart"
-    ],
-    "dependencies": ["Constants"]
-  }
+    },
+    "Theme": {
+      "path": "frontend/core/theme.dart",
+      "description": "App theme configuration for Material Design 3 with light/dark themes and role-specific customizations for adults and children.",
+      "classes": ["AppTheme"],
+      "properties": [
+        { "name": "lightTheme", "type": "ThemeData", "static": true },
+        { "name": "darkTheme", "type": "ThemeData", "static": true }
+      ],
+      "methods": [
+        { "name": "getTheme", "parameters": ["Brightness brightness"], "returnType": "ThemeData", "static": true },
+        { "name": "getAdultTheme", "parameters": ["required Brightness brightness"], "returnType": "ThemeData", "static": true },
+        { "name": "getChildTheme", "parameters": ["required Brightness brightness"], "returnType": "ThemeData", "static": true }
+      ],
+      "imports": [
+        "package:flutter/material.dart",
+        "package:flutter/services.dart",
+        "constants.dart"
+      ],
+      "dependencies": ["Constants"]
+    }
   },
   "utils": {
     "SnackbarUtils": {

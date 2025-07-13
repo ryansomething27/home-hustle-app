@@ -75,7 +75,9 @@ void _showSnackbar({
   SnackBarAction? action,
 }) {
   final messenger = messengerKey.currentState;
-  if (messenger == null) return;
+  if (messenger == null) {
+    return;
+  }
 
   // Hide any existing snackbar and show new one using cascade
   messenger

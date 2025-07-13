@@ -1,7 +1,94 @@
 import 'dart:convert';
 
 /// Model representing a job posting in the Home Hustle app
-class JobModel {
+class JobModel { // For additional flexible data
+
+  JobModel({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.wage,
+    required this.wageType,
+    required this.jobType,
+    required this.category,
+    required this.status,
+    required this.createdById,
+    required this.createdByName,
+    required this.createdAt, required this.updatedAt, this.assignedToId,
+    this.assignedToName,
+    this.startDate,
+    this.endDate,
+    this.completedAt,
+    this.estimatedDuration,
+    this.actualDuration,
+    this.location,
+    this.requiredSkills,
+    this.imageUrls,
+    this.maxApplicants,
+    this.currentApplicants = 0,
+    this.isUrgent = false,
+    this.cancellationReason,
+    this.completionNotes,
+    this.rating,
+    this.reviewNotes,
+    this.metadata,
+  });
+
+  /// Create model from map
+  factory JobModel.fromMap(Map<String, dynamic> map) {
+    return JobModel(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      wage: (map['wage'] ?? 0).toDouble(),
+      wageType: map['wageType'] ?? 'fixed',
+      jobType: map['jobType'] ?? 'public',
+      category: map['category'] ?? 'Other',
+      status: map['status'] ?? 'open',
+      createdById: map['createdById'] ?? '',
+      createdByName: map['createdByName'] ?? '',
+      assignedToId: map['assignedToId'],
+      assignedToName: map['assignedToName'],
+      createdAt: map['createdAt'] != null 
+          ? DateTime.parse(map['createdAt']) 
+          : DateTime.now(),
+      updatedAt: map['updatedAt'] != null 
+          ? DateTime.parse(map['updatedAt']) 
+          : DateTime.now(),
+      startDate: map['startDate'] != null 
+          ? DateTime.parse(map['startDate']) 
+          : null,
+      endDate: map['endDate'] != null 
+          ? DateTime.parse(map['endDate']) 
+          : null,
+      completedAt: map['completedAt'] != null 
+          ? DateTime.parse(map['completedAt']) 
+          : null,
+      estimatedDuration: map['estimatedDuration']?.toInt(),
+      actualDuration: map['actualDuration']?.toInt(),
+      location: map['location'],
+      requiredSkills: map['requiredSkills'] != null 
+          ? List<String>.from(map['requiredSkills']) 
+          : null,
+      imageUrls: map['imageUrls'] != null 
+          ? List<String>.from(map['imageUrls']) 
+          : null,
+      maxApplicants: map['maxApplicants']?.toInt(),
+      currentApplicants: map['currentApplicants']?.toInt() ?? 0,
+      isUrgent: map['isUrgent'] ?? false,
+      cancellationReason: map['cancellationReason'],
+      completionNotes: map['completionNotes'],
+      rating: map['rating']?.toDouble(),
+      reviewNotes: map['reviewNotes'],
+      metadata: map['metadata'] != null 
+          ? Map<String, dynamic>.from(map['metadata']) 
+          : null,
+    );
+  }
+
+  /// Create model from JSON string
+  factory JobModel.fromJson(String source) => 
+      JobModel.fromMap(json.decode(source));
   final String id;
   final String title;
   final String description;
@@ -31,40 +118,7 @@ class JobModel {
   final String? completionNotes;
   final double? rating;
   final String? reviewNotes;
-  final Map<String, dynamic>? metadata; // For additional flexible data
-
-  JobModel({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.wage,
-    required this.wageType,
-    required this.jobType,
-    required this.category,
-    required this.status,
-    required this.createdById,
-    required this.createdByName,
-    this.assignedToId,
-    this.assignedToName,
-    required this.createdAt,
-    required this.updatedAt,
-    this.startDate,
-    this.endDate,
-    this.completedAt,
-    this.estimatedDuration,
-    this.actualDuration,
-    this.location,
-    this.requiredSkills,
-    this.imageUrls,
-    this.maxApplicants,
-    this.currentApplicants = 0,
-    this.isUrgent = false,
-    this.cancellationReason,
-    this.completionNotes,
-    this.rating,
-    this.reviewNotes,
-    this.metadata,
-  });
+  final Map<String, dynamic>? metadata;
 
   /// Computed property to check if job is available for application
   bool get isAvailable => status == 'open' && 
@@ -127,64 +181,8 @@ class JobModel {
     };
   }
 
-  /// Create model from map
-  factory JobModel.fromMap(Map<String, dynamic> map) {
-    return JobModel(
-      id: map['id'] ?? '',
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      wage: (map['wage'] ?? 0).toDouble(),
-      wageType: map['wageType'] ?? 'fixed',
-      jobType: map['jobType'] ?? 'public',
-      category: map['category'] ?? 'Other',
-      status: map['status'] ?? 'open',
-      createdById: map['createdById'] ?? '',
-      createdByName: map['createdByName'] ?? '',
-      assignedToId: map['assignedToId'],
-      assignedToName: map['assignedToName'],
-      createdAt: map['createdAt'] != null 
-          ? DateTime.parse(map['createdAt']) 
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null 
-          ? DateTime.parse(map['updatedAt']) 
-          : DateTime.now(),
-      startDate: map['startDate'] != null 
-          ? DateTime.parse(map['startDate']) 
-          : null,
-      endDate: map['endDate'] != null 
-          ? DateTime.parse(map['endDate']) 
-          : null,
-      completedAt: map['completedAt'] != null 
-          ? DateTime.parse(map['completedAt']) 
-          : null,
-      estimatedDuration: map['estimatedDuration']?.toInt(),
-      actualDuration: map['actualDuration']?.toInt(),
-      location: map['location'],
-      requiredSkills: map['requiredSkills'] != null 
-          ? List<String>.from(map['requiredSkills']) 
-          : null,
-      imageUrls: map['imageUrls'] != null 
-          ? List<String>.from(map['imageUrls']) 
-          : null,
-      maxApplicants: map['maxApplicants']?.toInt(),
-      currentApplicants: map['currentApplicants']?.toInt() ?? 0,
-      isUrgent: map['isUrgent'] ?? false,
-      cancellationReason: map['cancellationReason'],
-      completionNotes: map['completionNotes'],
-      rating: map['rating']?.toDouble(),
-      reviewNotes: map['reviewNotes'],
-      metadata: map['metadata'] != null 
-          ? Map<String, dynamic>.from(map['metadata']) 
-          : null,
-    );
-  }
-
   /// Convert model to JSON string
   String toJson() => json.encode(toMap());
-
-  /// Create model from JSON string
-  factory JobModel.fromJson(String source) => 
-      JobModel.fromMap(json.decode(source));
 
   /// Create a copy of the model with updated fields
   JobModel copyWith({
@@ -255,7 +253,9 @@ class JobModel {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
   
     return other is JobModel && other.id == id;
   }
@@ -271,16 +271,6 @@ class JobModel {
 
 /// Model representing a job application
 class JobApplication {
-  final String id;
-  final String jobId;
-  final String applicantId; // Child/Employee who applied
-  final String applicantName; // Cached name for display
-  final DateTime appliedAt;
-  final String status; // 'pending', 'approved', 'rejected', 'withdrawn'
-  final String? applicationNote;
-  final String? rejectionReason;
-  final DateTime? respondedAt;
-  final String? respondedById;
 
   JobApplication({
     required this.id,
@@ -294,22 +284,6 @@ class JobApplication {
     this.respondedAt,
     this.respondedById,
   });
-
-  /// Convert model to map
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'jobId': jobId,
-      'applicantId': applicantId,
-      'applicantName': applicantName,
-      'appliedAt': appliedAt.toIso8601String(),
-      'status': status,
-      'applicationNote': applicationNote,
-      'rejectionReason': rejectionReason,
-      'respondedAt': respondedAt?.toIso8601String(),
-      'respondedById': respondedById,
-    };
-  }
 
   /// Create model from map
   factory JobApplication.fromMap(Map<String, dynamic> map) {
@@ -331,12 +305,38 @@ class JobApplication {
     );
   }
 
-  /// Convert model to JSON string
-  String toJson() => json.encode(toMap());
-
   /// Create model from JSON string
   factory JobApplication.fromJson(String source) => 
       JobApplication.fromMap(json.decode(source));
+  final String id;
+  final String jobId;
+  final String applicantId; // Child/Employee who applied
+  final String applicantName; // Cached name for display
+  final DateTime appliedAt;
+  final String status; // 'pending', 'approved', 'rejected', 'withdrawn'
+  final String? applicationNote;
+  final String? rejectionReason;
+  final DateTime? respondedAt;
+  final String? respondedById;
+
+  /// Convert model to map
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'jobId': jobId,
+      'applicantId': applicantId,
+      'applicantName': applicantName,
+      'appliedAt': appliedAt.toIso8601String(),
+      'status': status,
+      'applicationNote': applicationNote,
+      'rejectionReason': rejectionReason,
+      'respondedAt': respondedAt?.toIso8601String(),
+      'respondedById': respondedById,
+    };
+  }
+
+  /// Convert model to JSON string
+  String toJson() => json.encode(toMap());
 
   /// Create a copy of the model with updated fields
   JobApplication copyWith({
@@ -367,7 +367,9 @@ class JobApplication {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
   
     return other is JobApplication && other.id == id;
   }

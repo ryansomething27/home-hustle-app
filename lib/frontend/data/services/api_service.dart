@@ -7,8 +7,6 @@ import 'package:flutter/foundation.dart';
 import '../../core/constants.dart';
 
 class ApiService {
-  late final Dio _dio;
-  static ApiService? _instance;
   
   // Singleton pattern
   factory ApiService() {
@@ -43,6 +41,8 @@ class ApiService {
       ));
     }
   }
+  late final Dio _dio;
+  static ApiService? _instance;
 
   // GET request
   Future<Response> get(
@@ -317,15 +317,15 @@ class _ErrorInterceptor extends Interceptor {
 
 // Custom exception class for API errors
 class ApiException implements Exception {
-  final String message;
-  final int? statusCode;
-  final dynamic data;
 
   ApiException({
     required this.message,
     this.statusCode,
     this.data,
   });
+  final String message;
+  final int? statusCode;
+  final dynamic data;
 
   @override
   String toString() => message;

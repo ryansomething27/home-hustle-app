@@ -1,32 +1,7 @@
 import 'dart:convert';
 
 /// Model representing a bank account in the Home Hustle app
-class AccountModel {
-  final String id;
-  final String ownerId; // User ID who owns the account
-  final String ownerName; // Cached owner name for display
-  final String accountType; // 'primary', 'savings', 'spending', 'goals'
-  final String accountName;
-  final double balance;
-  final double availableBalance; // May differ from balance if funds are held
-  final String currency; // Default 'USD'
-  final String status; // 'active', 'frozen', 'closed'
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final DateTime? lastTransactionAt;
-  final String? parentAccountId; // For sub-accounts
-  final List<String>? linkedUserIds; // For shared family accounts
-  final bool isDefault;
-  final bool allowOverdraft;
-  final double overdraftLimit;
-  final double? interestRate; // For savings accounts
-  final String? accountNumber; // Virtual account number
-  final String? routingNumber; // Virtual routing number
-  final AccountLimits? limits;
-  final Map<String, dynamic>? metadata;
-  final String? iconName; // Custom icon for the account
-  final String? color; // Custom color for UI display
-  final List<String>? tags; // For categorization
+class AccountModel { // For categorization
 
   AccountModel({
     required this.id,
@@ -36,10 +11,8 @@ class AccountModel {
     required this.accountName,
     required this.balance,
     required this.availableBalance,
-    this.currency = 'USD',
+    required this.createdAt, required this.updatedAt, this.currency = 'USD',
     this.status = 'active',
-    required this.createdAt,
-    required this.updatedAt,
     this.lastTransactionAt,
     this.parentAccountId,
     this.linkedUserIds,
@@ -55,75 +28,6 @@ class AccountModel {
     this.color,
     this.tags,
   });
-
-  /// Computed property to check if account is active
-  bool get isActive => status == 'active';
-
-  /// Computed property to check if account is frozen
-  bool get isFrozen => status == 'frozen';
-
-  /// Computed property to check if account is closed
-  bool get isClosed => status == 'closed';
-
-  /// Computed property to check if account can accept deposits
-  bool get canAcceptDeposits => isActive;
-
-  /// Computed property to check if account can make withdrawals
-  bool get canMakeWithdrawals => isActive && availableBalance > 0;
-
-  /// Computed property to check if account is shared
-  bool get isShared => linkedUserIds != null && linkedUserIds!.isNotEmpty;
-
-  /// Computed property to check if account is a savings account
-  bool get isSavingsAccount => accountType == 'savings';
-
-  /// Computed property to check if account is a goals account
-  bool get isGoalsAccount => accountType == 'goals';
-
-  /// Computed property to get funds on hold
-  double get fundsOnHold => balance - availableBalance;
-
-  /// Check if user can withdraw a specific amount
-  bool canWithdraw(double amount) {
-    if (!isActive) return false;
-    
-    if (allowOverdraft) {
-      return amount <= (availableBalance + overdraftLimit);
-    }
-    
-    return amount <= availableBalance;
-  }
-
-  /// Convert model to map
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'ownerId': ownerId,
-      'ownerName': ownerName,
-      'accountType': accountType,
-      'accountName': accountName,
-      'balance': balance,
-      'availableBalance': availableBalance,
-      'currency': currency,
-      'status': status,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-      'lastTransactionAt': lastTransactionAt?.toIso8601String(),
-      'parentAccountId': parentAccountId,
-      'linkedUserIds': linkedUserIds,
-      'isDefault': isDefault,
-      'allowOverdraft': allowOverdraft,
-      'overdraftLimit': overdraftLimit,
-      'interestRate': interestRate,
-      'accountNumber': accountNumber,
-      'routingNumber': routingNumber,
-      'limits': limits?.toMap(),
-      'metadata': metadata,
-      'iconName': iconName,
-      'color': color,
-      'tags': tags,
-    };
-  }
 
   /// Create model from map
   factory AccountModel.fromMap(Map<String, dynamic> map) {
@@ -170,12 +74,108 @@ class AccountModel {
     );
   }
 
-  /// Convert model to JSON string
-  String toJson() => json.encode(toMap());
-
   /// Create model from JSON string
   factory AccountModel.fromJson(String source) => 
       AccountModel.fromMap(json.decode(source));
+  final String id;
+  final String ownerId; // User ID who owns the account
+  final String ownerName; // Cached owner name for display
+  final String accountType; // 'primary', 'savings', 'spending', 'goals'
+  final String accountName;
+  final double balance;
+  final double availableBalance; // May differ from balance if funds are held
+  final String currency; // Default 'USD'
+  final String status; // 'active', 'frozen', 'closed'
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? lastTransactionAt;
+  final String? parentAccountId; // For sub-accounts
+  final List<String>? linkedUserIds; // For shared family accounts
+  final bool isDefault;
+  final bool allowOverdraft;
+  final double overdraftLimit;
+  final double? interestRate; // For savings accounts
+  final String? accountNumber; // Virtual account number
+  final String? routingNumber; // Virtual routing number
+  final AccountLimits? limits;
+  final Map<String, dynamic>? metadata;
+  final String? iconName; // Custom icon for the account
+  final String? color; // Custom color for UI display
+  final List<String>? tags;
+
+  /// Computed property to check if account is active
+  bool get isActive => status == 'active';
+
+  /// Computed property to check if account is frozen
+  bool get isFrozen => status == 'frozen';
+
+  /// Computed property to check if account is closed
+  bool get isClosed => status == 'closed';
+
+  /// Computed property to check if account can accept deposits
+  bool get canAcceptDeposits => isActive;
+
+  /// Computed property to check if account can make withdrawals
+  bool get canMakeWithdrawals => isActive && availableBalance > 0;
+
+  /// Computed property to check if account is shared
+  bool get isShared => linkedUserIds != null && linkedUserIds!.isNotEmpty;
+
+  /// Computed property to check if account is a savings account
+  bool get isSavingsAccount => accountType == 'savings';
+
+  /// Computed property to check if account is a goals account
+  bool get isGoalsAccount => accountType == 'goals';
+
+  /// Computed property to get funds on hold
+  double get fundsOnHold => balance - availableBalance;
+
+  /// Check if user can withdraw a specific amount
+  bool canWithdraw(double amount) {
+    if (!isActive) {
+      return false;
+    }
+    
+    if (allowOverdraft) {
+      return amount <= (availableBalance + overdraftLimit);
+    }
+    
+    return amount <= availableBalance;
+  }
+
+  /// Convert model to map
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'ownerId': ownerId,
+      'ownerName': ownerName,
+      'accountType': accountType,
+      'accountName': accountName,
+      'balance': balance,
+      'availableBalance': availableBalance,
+      'currency': currency,
+      'status': status,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'lastTransactionAt': lastTransactionAt?.toIso8601String(),
+      'parentAccountId': parentAccountId,
+      'linkedUserIds': linkedUserIds,
+      'isDefault': isDefault,
+      'allowOverdraft': allowOverdraft,
+      'overdraftLimit': overdraftLimit,
+      'interestRate': interestRate,
+      'accountNumber': accountNumber,
+      'routingNumber': routingNumber,
+      'limits': limits?.toMap(),
+      'metadata': metadata,
+      'iconName': iconName,
+      'color': color,
+      'tags': tags,
+    };
+  }
+
+  /// Convert model to JSON string
+  String toJson() => json.encode(toMap());
 
   /// Create a copy of the model with updated fields
   AccountModel copyWith({
@@ -236,7 +236,9 @@ class AccountModel {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
   
     return other is AccountModel && other.id == id;
   }
@@ -252,14 +254,6 @@ class AccountModel {
 
 /// Model representing account transaction limits
 class AccountLimits {
-  final double? dailyWithdrawalLimit;
-  final double? dailyDepositLimit;
-  final double? monthlyWithdrawalLimit;
-  final double? monthlyDepositLimit;
-  final double? singleTransactionLimit;
-  final int? dailyTransactionCount;
-  final int? monthlyTransactionCount;
-  final DateTime? limitsResetAt;
 
   AccountLimits({
     this.dailyWithdrawalLimit,
@@ -271,6 +265,30 @@ class AccountLimits {
     this.monthlyTransactionCount,
     this.limitsResetAt,
   });
+
+  /// Create model from map
+  factory AccountLimits.fromMap(Map<String, dynamic> map) {
+    return AccountLimits(
+      dailyWithdrawalLimit: map['dailyWithdrawalLimit']?.toDouble(),
+      dailyDepositLimit: map['dailyDepositLimit']?.toDouble(),
+      monthlyWithdrawalLimit: map['monthlyWithdrawalLimit']?.toDouble(),
+      monthlyDepositLimit: map['monthlyDepositLimit']?.toDouble(),
+      singleTransactionLimit: map['singleTransactionLimit']?.toDouble(),
+      dailyTransactionCount: map['dailyTransactionCount']?.toInt(),
+      monthlyTransactionCount: map['monthlyTransactionCount']?.toInt(),
+      limitsResetAt: map['limitsResetAt'] != null 
+          ? DateTime.parse(map['limitsResetAt']) 
+          : null,
+    );
+  }
+  final double? dailyWithdrawalLimit;
+  final double? dailyDepositLimit;
+  final double? monthlyWithdrawalLimit;
+  final double? monthlyDepositLimit;
+  final double? singleTransactionLimit;
+  final int? dailyTransactionCount;
+  final int? monthlyTransactionCount;
+  final DateTime? limitsResetAt;
 
   /// Check if a withdrawal is within limits
   bool isWithdrawalWithinLimits(double amount, double dailyTotal, double monthlyTotal) {
@@ -320,22 +338,6 @@ class AccountLimits {
     };
   }
 
-  /// Create model from map
-  factory AccountLimits.fromMap(Map<String, dynamic> map) {
-    return AccountLimits(
-      dailyWithdrawalLimit: map['dailyWithdrawalLimit']?.toDouble(),
-      dailyDepositLimit: map['dailyDepositLimit']?.toDouble(),
-      monthlyWithdrawalLimit: map['monthlyWithdrawalLimit']?.toDouble(),
-      monthlyDepositLimit: map['monthlyDepositLimit']?.toDouble(),
-      singleTransactionLimit: map['singleTransactionLimit']?.toDouble(),
-      dailyTransactionCount: map['dailyTransactionCount']?.toInt(),
-      monthlyTransactionCount: map['monthlyTransactionCount']?.toInt(),
-      limitsResetAt: map['limitsResetAt'] != null 
-          ? DateTime.parse(map['limitsResetAt']) 
-          : null,
-    );
-  }
-
   /// Create a copy with updated fields
   AccountLimits copyWith({
     double? dailyWithdrawalLimit,
@@ -362,6 +364,49 @@ class AccountLimits {
 
 /// Model representing a savings goal
 class SavingsGoal {
+
+  SavingsGoal({
+    required this.id,
+    required this.accountId,
+    required this.name,
+    required this.targetAmount, required this.currentAmount, required this.targetDate, required this.createdAt, required this.updatedAt, required this.createdById, this.description,
+    this.imageUrl,
+    this.category,
+    this.isCompleted = false,
+    this.completedAt,
+    this.contributorIds,
+  });
+
+  /// Create model from map
+  factory SavingsGoal.fromMap(Map<String, dynamic> map) {
+    return SavingsGoal(
+      id: map['id'] ?? '',
+      accountId: map['accountId'] ?? '',
+      name: map['name'] ?? '',
+      description: map['description'],
+      targetAmount: (map['targetAmount'] ?? 0).toDouble(),
+      currentAmount: (map['currentAmount'] ?? 0).toDouble(),
+      targetDate: map['targetDate'] != null 
+          ? DateTime.parse(map['targetDate']) 
+          : DateTime.now().add(const Duration(days: 30)),
+      createdAt: map['createdAt'] != null 
+          ? DateTime.parse(map['createdAt']) 
+          : DateTime.now(),
+      updatedAt: map['updatedAt'] != null 
+          ? DateTime.parse(map['updatedAt']) 
+          : DateTime.now(),
+      imageUrl: map['imageUrl'],
+      category: map['category'],
+      isCompleted: map['isCompleted'] ?? false,
+      completedAt: map['completedAt'] != null 
+          ? DateTime.parse(map['completedAt']) 
+          : null,
+      createdById: map['createdById'] ?? '',
+      contributorIds: map['contributorIds'] != null 
+          ? List<String>.from(map['contributorIds']) 
+          : null,
+    );
+  }
   final String id;
   final String accountId; // Associated goals account
   final String name;
@@ -378,27 +423,11 @@ class SavingsGoal {
   final String createdById;
   final List<String>? contributorIds;
 
-  SavingsGoal({
-    required this.id,
-    required this.accountId,
-    required this.name,
-    this.description,
-    required this.targetAmount,
-    required this.currentAmount,
-    required this.targetDate,
-    required this.createdAt,
-    required this.updatedAt,
-    this.imageUrl,
-    this.category,
-    this.isCompleted = false,
-    this.completedAt,
-    required this.createdById,
-    this.contributorIds,
-  });
-
   /// Computed property for progress percentage
   double get progressPercentage {
-    if (targetAmount <= 0) return 0;
+    if (targetAmount <= 0) {
+      return 0;
+    }
     return (currentAmount / targetAmount * 100).clamp(0, 100);
   }
 
@@ -430,36 +459,5 @@ class SavingsGoal {
       'createdById': createdById,
       'contributorIds': contributorIds,
     };
-  }
-
-  /// Create model from map
-  factory SavingsGoal.fromMap(Map<String, dynamic> map) {
-    return SavingsGoal(
-      id: map['id'] ?? '',
-      accountId: map['accountId'] ?? '',
-      name: map['name'] ?? '',
-      description: map['description'],
-      targetAmount: (map['targetAmount'] ?? 0).toDouble(),
-      currentAmount: (map['currentAmount'] ?? 0).toDouble(),
-      targetDate: map['targetDate'] != null 
-          ? DateTime.parse(map['targetDate']) 
-          : DateTime.now().add(const Duration(days: 30)),
-      createdAt: map['createdAt'] != null 
-          ? DateTime.parse(map['createdAt']) 
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null 
-          ? DateTime.parse(map['updatedAt']) 
-          : DateTime.now(),
-      imageUrl: map['imageUrl'],
-      category: map['category'],
-      isCompleted: map['isCompleted'] ?? false,
-      completedAt: map['completedAt'] != null 
-          ? DateTime.parse(map['completedAt']) 
-          : null,
-      createdById: map['createdById'] ?? '',
-      contributorIds: map['contributorIds'] != null 
-          ? List<String>.from(map['contributorIds']) 
-          : null,
-    );
   }
 }

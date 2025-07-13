@@ -17,7 +17,7 @@ class FormatUtils {
   // Currency Formatter
   static final NumberFormat _currencyFormatter = NumberFormat.currency(
     locale: 'en_US',
-    symbol: '\$',
+    symbol: r'$',
     decimalDigits: 2,
   );
   
@@ -109,10 +109,14 @@ class FormatUtils {
   
   /// Formats name with proper capitalization
   static String formatName(String name) {
-    if (name.isEmpty) return name;
+    if (name.isEmpty) {
+      return name;
+    }
     
     return name.split(' ').map((word) {
-      if (word.isEmpty) return word;
+      if (word.isEmpty) {
+        return word;
+      }
       return word[0].toUpperCase() + word.substring(1).toLowerCase();
     }).join(' ');
   }
@@ -229,14 +233,16 @@ class FormatUtils {
   
   /// Truncates text with ellipsis
   static String truncateText(String text, int maxLength, {String ellipsis = '...'}) {
-    if (text.length <= maxLength) return text;
+    if (text.length <= maxLength) {
+      return text;
+    }
     return '${text.substring(0, maxLength - ellipsis.length)}$ellipsis';
   }
   
   /// Formats age from birth date
   static String formatAge(DateTime birthDate) {
     final now = DateTime.now();
-    int age = now.year - birthDate.year;
+    var age = now.year - birthDate.year;
     
     if (now.month < birthDate.month ||
         (now.month == birthDate.month && now.day < birthDate.day)) {
