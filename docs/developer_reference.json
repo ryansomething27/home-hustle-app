@@ -1,16 +1,583 @@
 {
   "classes": {
-    "AuthService": "frontend/data/services/auth_service.dart",
-    "ApiService": "frontend/data/services/api_service.dart",
-    "NotificationService": "frontend/data/services/notification_service.dart",
-    "BankService": "frontend/data/services/bank_service.dart",
+    "AuthService": {
+      "path": "frontend/data/services/auth_service.dart",
+      "description": "Handles all authentication operations including Firebase Auth integration, user registration/login for both adults and children, token management, and account operations.",
+      "classes": ["AuthService"],
+      "constants": [
+        { "name": "_isFirstTimeKey", "type": "String", "value": "'isFirstTime'" }
+      ],
+      "methods": [
+        { "name": "isLoggedIn", "parameters": [], "returnType": "Future<bool>" },
+        { "name": "getCurrentUser", "parameters": [], "returnType": "Future<UserModel?>" },
+        { "name": "registerUser", "parameters": ["String email", "String password", "String firstName", "String lastName", "String accountType", "String? parentInviteCode"], "returnType": "Future<UserModel>" },
+        { "name": "loginUser", "parameters": ["String email", "String password"], "returnType": "Future<UserModel>" },
+        { "name": "logout", "parameters": [], "returnType": "Future<void>" },
+        { "name": "updateUserProfile", "parameters": ["Map<String, dynamic> updates"], "returnType": "Future<UserModel>" },
+        { "name": "resetPassword", "parameters": ["String email"], "returnType": "Future<void>" },
+        { "name": "isEmailVerified", "parameters": [], "returnType": "Future<bool>" },
+        { "name": "resendVerificationEmail", "parameters": [], "returnType": "Future<void>" },
+        { "name": "getIdToken", "parameters": [], "returnType": "Future<String?>" },
+        { "name": "refreshToken", "parameters": [], "returnType": "Future<String?>" },
+        { "name": "deleteAccount", "parameters": [], "returnType": "Future<void>" },
+        { "name": "reauthenticate", "parameters": ["String email", "String password"], "returnType": "Future<void>" },
+        { "name": "isFirstTimeUser", "parameters": [], "returnType": "Future<bool>" },
+        { "name": "setFirstTimeUser", "parameters": ["bool isFirstTime"], "returnType": "Future<void>" }
+      ],
+      "properties": [
+        { "name": "currentFirebaseUser", "type": "fb_auth.User?", "getter": true },
+        { "name": "authStateChanges", "type": "Stream<fb_auth.User?>", "getter": true }
+      ],
+      "imports": [
+        "package:dio/dio.dart",
+        "package:firebase_auth/firebase_auth.dart as fb_auth",
+        "package:flutter_secure_storage/flutter_secure_storage.dart",
+        "package:shared_preferences/shared_preferences.dart",
+        "../../core/constants.dart",
+        "../models/user.dart",
+        "api_service.dart"
+      ],
+      "apiEndpoints": ["/auth/registerUser", "/auth/loginUser", "/auth/updateUser", "/auth/deleteUser"],
+      "dependencies": ["UserModel", "ApiService", "Constants"]
+    },
+    "ApiService": {
+      "path": "frontend/data/services/api_service.dart",
+      "description": "Base API service handling all HTTP requests with Dio, including authentication interceptor, error handling, and file upload/download capabilities.",
+      "classes": ["ApiService", "_AuthInterceptor", "_ErrorInterceptor", "ApiException"],
+      "methods": [
+        { "name": "get", "parameters": ["String path", "Map<String, dynamic>? queryParameters", "Map<String, dynamic>? headers", "CancelToken? cancelToken"], "returnType": "Future<Response>" },
+        { "name": "post", "parameters": ["String path", "dynamic data", "Map<String, dynamic>? queryParameters", "Map<String, dynamic>? headers", "CancelToken? cancelToken", "ProgressCallback? onSendProgress"], "returnType": "Future<Response>" },
+        { "name": "put", "parameters": ["String path", "dynamic data", "Map<String, dynamic>? queryParameters", "Map<String, dynamic>? headers", "CancelToken? cancelToken"], "returnType": "Future<Response>" },
+        { "name": "patch", "parameters": ["String path", "dynamic data", "Map<String, dynamic>? queryParameters", "Map<String, dynamic>? headers", "CancelToken? cancelToken"], "returnType": "Future<Response>" },
+        { "name": "delete", "parameters": ["String path", "dynamic data", "Map<String, dynamic>? queryParameters", "Map<String, dynamic>? headers", "CancelToken? cancelToken"], "returnType": "Future<Response>" },
+        { "name": "uploadFile", "parameters": ["String path", "File file", "String fileFieldName", "Map<String, dynamic>? data", "Map<String, dynamic>? headers", "ProgressCallback? onSendProgress", "CancelToken? cancelToken"], "returnType": "Future<Response>" },
+        { "name": "downloadFile", "parameters": ["String urlPath", "String savePath", "Map<String, dynamic>? queryParameters", "Map<String, dynamic>? headers", "ProgressCallback? onReceiveProgress", "CancelToken? cancelToken"], "returnType": "Future<Response>" }
+      ],
+      "singleton": true,
+      "imports": [
+        "dart:io",
+        "package:dio/dio.dart",
+        "package:firebase_auth/firebase_auth.dart",
+        "package:flutter/foundation.dart",
+        "../../core/constants.dart"
+      ],
+      "dependencies": ["Constants"]
+    },
+    "UserModel": {
+      "path": "frontend/data/models/user.dart",
+      "description": "User model representing both adult and child accounts with role-specific fields and computed properties.",
+      "classes": ["UserModel"],
+      "fields": [
+        { "name": "id", "type": "String", "required": true },
+        { "name": "email", "type": "String", "required": true },
+        { "name": "firstName", "type": "String", "required": true },
+        { "name": "lastName", "type": "String", "required": true },
+        { "name": "accountType", "type": "String", "required": true },
+        { "name": "profileImageUrl", "type": "String?", "required": false },
+        { "name": "createdAt", "type": "DateTime", "required": true },
+        { "name": "updatedAt", "type": "DateTime", "required": true },
+        { "name": "isEmailVerified", "type": "bool", "default": "false" },
+        { "name": "isActive", "type": "bool", "default": "true" },
+        { "name": "phoneNumber", "type": "String?", "required": false },
+        { "name": "familyId", "type": "String?", "required": false },
+        { "name": "childrenIds", "type": "List<String>?", "required": false },
+        { "name": "totalSpent", "type": "double?", "required": false },
+        { "name": "parentId", "type": "String?", "required": false },
+        { "name": "birthDate", "type": "DateTime?", "required": false },
+        { "name": "balance", "type": "double?", "required": false },
+        { "name": "totalEarned", "type": "double?", "required": false },
+        { "name": "completedJobIds", "type": "List<String>?", "required": false },
+        { "name": "skillTags", "type": "List<String>?", "required": false },
+        { "name": "resumeUrl", "type": "String?", "required": false },
+        { "name": "notificationSettings", "type": "Map<String, dynamic>?", "required": false },
+        { "name": "preferredLanguage", "type": "String?", "required": false },
+        { "name": "timezone", "type": "String?", "required": false }
+      ],
+      "methods": [
+        { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+        { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "UserModel", "static": true },
+        { "name": "toJson", "parameters": [], "returnType": "String" },
+        { "name": "fromJson", "parameters": ["String source"], "returnType": "UserModel", "static": true },
+        { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "UserModel" }
+      ],
+      "computedProperties": [
+        { "name": "fullName", "type": "String", "getter": true },
+        { "name": "isAdult", "type": "bool", "getter": true },
+        { "name": "isChild", "type": "bool", "getter": true },
+        { "name": "age", "type": "int?", "getter": true }
+      ],
+      "imports": ["dart:convert"]
+    },
+    "NotificationService": {
+      "path": "frontend/data/services/notification_service.dart",
+      "description": "Handles push notifications via Firebase Cloud Messaging and local notifications, including token management, permission handling, and notification history.",
+      "classes": ["NotificationService"],
+      "singleton": true,
+      "constants": [
+        { "name": "defaultNotificationChannel", "type": "String", "value": "'high_importance_channel'" },
+        { "name": "defaultNotificationIcon", "type": "String", "value": "'ic_notification'" },
+        { "name": "defaultNotificationColor", "type": "Color", "value": "kPrimaryColor" },
+        { "name": "_fcmTokenKey", "type": "String", "value": "'fcmToken'" },
+        { "name": "_notificationPermissionKey", "type": "String", "value": "'notificationPermission'" }
+      ],
+      "methods": [
+        { "name": "initialize", "parameters": [], "returnType": "Future<void>" },
+        { "name": "getToken", "parameters": [], "returnType": "Future<String?>" },
+        { "name": "deleteToken", "parameters": [], "returnType": "Future<void>" },
+        { "name": "subscribeToTopic", "parameters": ["String topic"], "returnType": "Future<void>" },
+        { "name": "unsubscribeFromTopic", "parameters": ["String topic"], "returnType": "Future<void>" },
+        { "name": "sendNotification", "parameters": ["required String title", "required String body", "required String recipientId", "String? type", "String? actionType", "Map<String, dynamic>? actionData", "String? imageUrl", "String priority = 'normal'"], "returnType": "Future<void>" },
+        { "name": "showLocalNotification", "parameters": ["required String title", "required String body", "Map<String, dynamic>? payload", "String? imageUrl", "bool playSound = true", "bool vibrate = true"], "returnType": "Future<void>" },
+        { "name": "fetchNotificationHistory", "parameters": ["int page = 1", "int limit = 20", "String? type", "bool unreadOnly = false"], "returnType": "Future<List<NotificationModel>>" },
+        { "name": "markAsRead", "parameters": ["String notificationId"], "returnType": "Future<void>" },
+        { "name": "markAllAsRead", "parameters": [], "returnType": "Future<void>" },
+        { "name": "deleteNotification", "parameters": ["String notificationId"], "returnType": "Future<void>" },
+        { "name": "getNotificationPreferences", "parameters": [], "returnType": "Future<NotificationPreferences>" },
+        { "name": "updateNotificationPreferences", "parameters": ["NotificationPreferences preferences"], "returnType": "Future<NotificationPreferences>" },
+        { "name": "getUnreadCount", "parameters": [], "returnType": "Future<int>" },
+        { "name": "scheduleNotification", "parameters": ["required String title", "required String body", "required DateTime scheduledDate", "Map<String, dynamic>? payload"], "returnType": "Future<void>" },
+        { "name": "cancelScheduledNotification", "parameters": ["int id"], "returnType": "Future<void>" },
+        { "name": "cancelAllNotifications", "parameters": [], "returnType": "Future<void>" }
+      ],
+      "topLevelFunctions": [
+        { "name": "_handleBackgroundMessage", "parameters": ["RemoteMessage message"], "returnType": "Future<void>" }
+      ],
+      "imports": [
+        "dart:convert",
+        "dart:io",
+        "package:firebase_messaging/firebase_messaging.dart",
+        "package:flutter/foundation.dart",
+        "package:flutter/material.dart",
+        "package:flutter_local_notifications/flutter_local_notifications.dart",
+        "package:permission_handler/permission_handler.dart",
+        "package:shared_preferences/shared_preferences.dart",
+        "../../core/constants.dart",
+        "../models/notification.dart",
+        "api_service.dart",
+        "auth_service.dart"
+      ],
+      "apiEndpoints": [
+        "/notifications/register-token",
+        "/notifications/remove-token",
+        "/notifications/send",
+        "/notifications/history",
+        "/notifications/:id/read",
+        "/notifications/read-all",
+        "/notifications/:id",
+        "/notifications/preferences",
+        "/notifications/unread-count",
+        "/notifications/save"
+      ],
+      "dependencies": ["NotificationModel", "NotificationPreferences", "ApiService", "AuthService", "Constants"]
+    },
+    "BankService": {
+      "path": "frontend/data/services/bank_service.dart",
+      "description": "Manages state for user accounts, balances, transfers, and withdrawal requests.",
+      "classes": ["BankService"],
+      "singleton": true,
+      "methods": [
+        { "name": "createAccount", "parameters": ["required String accountType", "required String accountName", "String? parentAccountId", "double initialBalance = 0.0", "bool isDefault = false", "AccountLimits? limits", "String? iconName", "String? color"], "returnType": "Future<AccountModel>" },
+        { "name": "getMyAccounts", "parameters": ["String? accountType", "String? status", "bool includeShared = true"], "returnType": "Future<List<AccountModel>>" },
+        { "name": "getAccount", "parameters": ["String accountId"], "returnType": "Future<AccountModel>" },
+        { "name": "updateAccount", "parameters": ["required String accountId", "String? accountName", "String? status", "AccountLimits? limits", "String? iconName", "String? color", "List<String>? tags"], "returnType": "Future<AccountModel>" },
+        { "name": "getAccountBalance", "parameters": ["String accountId"], "returnType": "Future<double>" },
+        { "name": "deposit", "parameters": ["required String accountId", "required double amount", "required String description", "String? referenceType", "String? referenceId", "String? categoryId", "String? notes"], "returnType": "Future<TransactionModel>" },
+        { "name": "withdraw", "parameters": ["required String accountId", "required double amount", "required String description", "String? referenceType", "String? referenceId", "String? categoryId", "String? notes"], "returnType": "Future<TransactionModel>" },
+        { "name": "transfer", "parameters": ["required String fromAccountId", "required String toAccountId", "required double amount", "required String description", "String? categoryId", "String? notes", "bool isRecurring = false", "String? recurringSchedule"], "returnType": "Future<TransactionModel>" },
+        { "name": "getTransactionHistory", "parameters": ["required String accountId", "DateTime? startDate", "DateTime? endDate", "String? type", "String? status", "int page = 1", "int limit = 20"], "returnType": "Future<List<TransactionModel>>" },
+        { "name": "getMyTransactions", "parameters": ["DateTime? startDate", "DateTime? endDate", "String? type", "String? status", "String? accountId", "int page = 1", "int limit = 20"], "returnType": "Future<List<TransactionModel>>" },
+        { "name": "getTransactionSummary", "parameters": ["required DateTime startDate", "required DateTime endDate", "String? accountId"], "returnType": "Future<TransactionSummary>" },
+        { "name": "createSavingsGoal", "parameters": ["required String accountId", "required String name", "required double targetAmount", "required DateTime targetDate", "String? description", "String? imageUrl", "String? category"], "returnType": "Future<SavingsGoal>" },
+        { "name": "getSavingsGoals", "parameters": ["String accountId"], "returnType": "Future<List<SavingsGoal>>" },
+        { "name": "updateSavingsGoalProgress", "parameters": ["required String accountId", "required String goalId", "required double amount", "bool isContribution = true"], "returnType": "Future<SavingsGoal>" },
+        { "name": "deleteSavingsGoal", "parameters": ["String accountId", "String goalId"], "returnType": "Future<void>" },
+        { "name": "setDefaultAccount", "parameters": ["String accountId"], "returnType": "Future<AccountModel>" },
+        { "name": "getFamilyAccounts", "parameters": [], "returnType": "Future<List<AccountModel>>" },
+        { "name": "requestMoney", "parameters": ["required String fromParentAccountId", "required double amount", "required String reason", "String? notes"], "returnType": "Future<TransactionModel>" },
+        { "name": "respondToMoneyRequest", "parameters": ["required String transactionId", "required bool approve", "String? reason"], "returnType": "Future<TransactionModel>" },
+        { "name": "getPendingMoneyRequests", "parameters": [], "returnType": "Future<List<TransactionModel>>" },
+        { "name": "checkAccountLimits", "parameters": ["required String accountId", "required double amount", "required bool isWithdrawal"], "returnType": "Future<bool>" }
+      ],
+      "imports": [
+        "package:flutter/foundation.dart",
+        "../../core/constants.dart",
+        "../models/account.dart",
+        "../models/transaction.dart",
+        "../models/user.dart",
+        "api_service.dart",
+        "auth_service.dart"
+      ],
+      "apiEndpoints": [
+        "/accounts/create",
+        "/accounts/my-accounts",
+        "/accounts/:id",
+        "/accounts/:id/deposit",
+        "/accounts/:id/withdraw",
+        "/accounts/transfer",
+        "/accounts/:id/transactions",
+        "/accounts/my-transactions",
+        "/accounts/transaction-summary",
+        "/accounts/:id/savings-goals",
+        "/accounts/:id/savings-goals/:goalId/progress",
+        "/accounts/:id/savings-goals/:goalId",
+        "/accounts/:id/set-default",
+        "/accounts/family",
+        "/accounts/request-money",
+        "/accounts/money-requests/:id/respond",
+        "/accounts/money-requests/pending",
+        "/accounts/:id/check-limits"
+      ],
+      "dependencies": ["AccountModel", "TransactionModel", "TransactionSummary", "SavingsGoal", "AccountLimits", "UserModel", "ApiService", "AuthService", "Constants"]
+    },
     "JobService": "frontend/data/services/job_service.dart",
     "StoreService": "frontend/data/services/store_service.dart",
-    "UserModel": "frontend/data/models/user.dart",
-    "AccountModel": "frontend/data/models/account.dart",
-    "JobModel": "frontend/data/models/job.dart",
-    "NotificationModel": "frontend/data/models/notification.dart",
-    "TransactionModel": "frontend/data/models/transaction.dart",
+    "AccountModel": {
+      "path": "frontend/data/models/account.dart",
+      "description": "Model representing bank accounts in the Home Hustle app including primary, savings, spending, and goals accounts with limits and savings goal tracking.",
+      "classes": ["AccountModel", "AccountLimits", "SavingsGoal"],
+      "models": {
+        "AccountModel": {
+          "fields": [
+            { "name": "id", "type": "String", "required": true },
+            { "name": "ownerId", "type": "String", "required": true },
+            { "name": "ownerName", "type": "String", "required": true },
+            { "name": "accountType", "type": "String", "required": true },
+            { "name": "accountName", "type": "String", "required": true },
+            { "name": "balance", "type": "double", "required": true },
+            { "name": "availableBalance", "type": "double", "required": true },
+            { "name": "currency", "type": "String", "default": "USD" },
+            { "name": "status", "type": "String", "default": "active" },
+            { "name": "createdAt", "type": "DateTime", "required": true },
+            { "name": "updatedAt", "type": "DateTime", "required": true },
+            { "name": "lastTransactionAt", "type": "DateTime?", "required": false },
+            { "name": "parentAccountId", "type": "String?", "required": false },
+            { "name": "linkedUserIds", "type": "List<String>?", "required": false },
+            { "name": "isDefault", "type": "bool", "default": "false" },
+            { "name": "allowOverdraft", "type": "bool", "default": "false" },
+            { "name": "overdraftLimit", "type": "double", "default": "0.0" },
+            { "name": "interestRate", "type": "double?", "required": false },
+            { "name": "accountNumber", "type": "String?", "required": false },
+            { "name": "routingNumber", "type": "String?", "required": false },
+            { "name": "limits", "type": "AccountLimits?", "required": false },
+            { "name": "metadata", "type": "Map<String, dynamic>?", "required": false },
+            { "name": "iconName", "type": "String?", "required": false },
+            { "name": "color", "type": "String?", "required": false },
+            { "name": "tags", "type": "List<String>?", "required": false }
+          ],
+          "computedProperties": [
+            { "name": "isActive", "type": "bool", "getter": true },
+            { "name": "isFrozen", "type": "bool", "getter": true },
+            { "name": "isClosed", "type": "bool", "getter": true },
+            { "name": "canAcceptDeposits", "type": "bool", "getter": true },
+            { "name": "canMakeWithdrawals", "type": "bool", "getter": true },
+            { "name": "isShared", "type": "bool", "getter": true },
+            { "name": "isSavingsAccount", "type": "bool", "getter": true },
+            { "name": "isGoalsAccount", "type": "bool", "getter": true },
+            { "name": "fundsOnHold", "type": "double", "getter": true }
+          ],
+          "methods": [
+            { "name": "canWithdraw", "parameters": ["double amount"], "returnType": "bool" },
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "AccountModel", "static": true },
+            { "name": "toJson", "parameters": [], "returnType": "String" },
+            { "name": "fromJson", "parameters": ["String source"], "returnType": "AccountModel", "static": true },
+            { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "AccountModel" }
+          ]
+        },
+        "AccountLimits": {
+          "fields": [
+            { "name": "dailyWithdrawalLimit", "type": "double?", "required": false },
+            { "name": "dailyDepositLimit", "type": "double?", "required": false },
+            { "name": "monthlyWithdrawalLimit", "type": "double?", "required": false },
+            { "name": "monthlyDepositLimit", "type": "double?", "required": false },
+            { "name": "singleTransactionLimit", "type": "double?", "required": false },
+            { "name": "dailyTransactionCount", "type": "int?", "required": false },
+            { "name": "monthlyTransactionCount", "type": "int?", "required": false },
+            { "name": "limitsResetAt", "type": "DateTime?", "required": false }
+          ],
+          "methods": [
+            { "name": "isWithdrawalWithinLimits", "parameters": ["double amount", "double dailyTotal", "double monthlyTotal"], "returnType": "bool" },
+            { "name": "isDepositWithinLimits", "parameters": ["double amount", "double dailyTotal", "double monthlyTotal"], "returnType": "bool" },
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "AccountLimits", "static": true },
+            { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "AccountLimits" }
+          ]
+        },
+        "SavingsGoal": {
+          "fields": [
+            { "name": "id", "type": "String", "required": true },
+            { "name": "accountId", "type": "String", "required": true },
+            { "name": "name", "type": "String", "required": true },
+            { "name": "description", "type": "String?", "required": false },
+            { "name": "targetAmount", "type": "double", "required": true },
+            { "name": "currentAmount", "type": "double", "required": true },
+            { "name": "targetDate", "type": "DateTime", "required": true },
+            { "name": "createdAt", "type": "DateTime", "required": true },
+            { "name": "updatedAt", "type": "DateTime", "required": true },
+            { "name": "imageUrl", "type": "String?", "required": false },
+            { "name": "category", "type": "String?", "required": false },
+            { "name": "isCompleted", "type": "bool", "default": "false" },
+            { "name": "completedAt", "type": "DateTime?", "required": false },
+            { "name": "createdById", "type": "String", "required": true },
+            { "name": "contributorIds", "type": "List<String>?", "required": false }
+          ],
+          "computedProperties": [
+            { "name": "progressPercentage", "type": "double", "getter": true },
+            { "name": "remainingAmount", "type": "double", "getter": true },
+            { "name": "daysUntilTarget", "type": "int", "getter": true },
+            { "name": "isOverdue", "type": "bool", "getter": true }
+          ],
+          "methods": [
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "SavingsGoal", "static": true }
+          ]
+        }
+      },
+      "imports": ["dart:convert"],
+      "dependencies": []
+    },
+
+    "JobModel": {
+      "path": "frontend/data/models/job.dart",
+      "description": "Model representing a job posting in the Home Hustle app with support for both family and public jobs, wage types, applications, and reviews.",
+      "classes": ["JobModel", "JobApplication"],
+      "models": {
+        "JobModel": {
+          "fields": [
+            { "name": "id", "type": "String", "required": true },
+            { "name": "title", "type": "String", "required": true },
+            { "name": "description", "type": "String", "required": true },
+            { "name": "wage", "type": "double", "required": true },
+            { "name": "wageType", "type": "String", "required": true },
+            { "name": "jobType", "type": "String", "required": true },
+            { "name": "category", "type": "String", "required": true },
+            { "name": "status", "type": "String", "required": true },
+            { "name": "createdById", "type": "String", "required": true },
+            { "name": "createdByName", "type": "String", "required": true },
+            { "name": "assignedToId", "type": "String?", "required": false },
+            { "name": "assignedToName", "type": "String?", "required": false },
+            { "name": "createdAt", "type": "DateTime", "required": true },
+            { "name": "updatedAt", "type": "DateTime", "required": true },
+            { "name": "startDate", "type": "DateTime?", "required": false },
+            { "name": "endDate", "type": "DateTime?", "required": false },
+            { "name": "completedAt", "type": "DateTime?", "required": false },
+            { "name": "estimatedDuration", "type": "int?", "required": false },
+            { "name": "actualDuration", "type": "int?", "required": false },
+            { "name": "location", "type": "String?", "required": false },
+            { "name": "requiredSkills", "type": "List<String>?", "required": false },
+            { "name": "imageUrls", "type": "List<String>?", "required": false },
+            { "name": "maxApplicants", "type": "int?", "required": false },
+            { "name": "currentApplicants", "type": "int", "default": "0" },
+            { "name": "isUrgent", "type": "bool", "default": "false" },
+            { "name": "cancellationReason", "type": "String?", "required": false },
+            { "name": "completionNotes", "type": "String?", "required": false },
+            { "name": "rating", "type": "double?", "required": false },
+            { "name": "reviewNotes", "type": "String?", "required": false },
+            { "name": "metadata", "type": "Map<String, dynamic>?", "required": false }
+          ],
+          "computedProperties": [
+            { "name": "isAvailable", "type": "bool", "getter": true },
+            { "name": "isActive", "type": "bool", "getter": true },
+            { "name": "isFamilyJob", "type": "bool", "getter": true },
+            { "name": "isPublicJob", "type": "bool", "getter": true },
+            { "name": "totalWage", "type": "double", "getter": true }
+          ],
+          "methods": [
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "JobModel", "static": true },
+            { "name": "toJson", "parameters": [], "returnType": "String" },
+            { "name": "fromJson", "parameters": ["String source"], "returnType": "JobModel", "static": true },
+            { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "JobModel" }
+          ]
+        },
+        "JobApplication": {
+          "fields": [
+            { "name": "id", "type": "String", "required": true },
+            { "name": "jobId", "type": "String", "required": true },
+            { "name": "applicantId", "type": "String", "required": true },
+            { "name": "applicantName", "type": "String", "required": true },
+            { "name": "appliedAt", "type": "DateTime", "required": true },
+            { "name": "status", "type": "String", "required": true },
+            { "name": "applicationNote", "type": "String?", "required": false },
+            { "name": "rejectionReason", "type": "String?", "required": false },
+            { "name": "respondedAt", "type": "DateTime?", "required": false },
+            { "name": "respondedById", "type": "String?", "required": false }
+          ],
+          "methods": [
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "JobApplication", "static": true },
+            { "name": "toJson", "parameters": [], "returnType": "String" },
+            { "name": "fromJson", "parameters": ["String source"], "returnType": "JobApplication", "static": true },
+            { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "JobApplication" }
+          ]
+        }
+      },
+      "imports": ["dart:convert"],
+      "dependencies": []
+    },
+    "NotificationModel": {
+      "path": "frontend/data/models/notification.dart",
+      "description": "Model representing notifications in the Home Hustle app including push notifications, notification actions, and user notification preferences.",
+      "classes": ["NotificationModel", "NotificationAction", "NotificationPreferences"],
+      "models": {
+        "NotificationModel": {
+          "fields": [
+            { "name": "id", "type": "String", "required": true },
+            { "name": "type", "type": "String", "required": true },
+            { "name": "title", "type": "String", "required": true },
+            { "name": "body", "type": "String", "required": true },
+            { "name": "recipientId", "type": "String", "required": true },
+            { "name": "senderId", "type": "String?", "required": false },
+            { "name": "senderName", "type": "String?", "required": false },
+            { "name": "createdAt", "type": "DateTime", "required": true },
+            { "name": "readAt", "type": "DateTime?", "required": false },
+            { "name": "isRead", "type": "bool", "default": "false" },
+            { "name": "priority", "type": "String", "default": "normal" },
+            { "name": "actionType", "type": "String?", "required": false },
+            { "name": "actionData", "type": "String?", "required": false },
+            { "name": "imageUrl", "type": "String?", "required": false },
+            { "name": "category", "type": "String?", "required": false },
+            { "name": "expiresAt", "type": "DateTime?", "required": false },
+            { "name": "metadata", "type": "Map<String, dynamic>?", "required": false },
+            { "name": "isPersistent", "type": "bool", "default": "false" },
+            { "name": "deepLink", "type": "String?", "required": false },
+            { "name": "actions", "type": "List<NotificationAction>?", "required": false }
+          ],
+          "computedProperties": [
+            { "name": "isExpired", "type": "bool", "getter": true },
+            { "name": "isHighPriority", "type": "bool", "getter": true },
+            { "name": "isUrgent", "type": "bool", "getter": true },
+            { "name": "hasActions", "type": "bool", "getter": true },
+            { "name": "timeSinceCreated", "type": "Duration", "getter": true },
+            { "name": "formattedType", "type": "String", "getter": true },
+            { "name": "iconName", "type": "String", "getter": true }
+          ],
+          "methods": [
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "NotificationModel", "static": true },
+            { "name": "toJson", "parameters": [], "returnType": "String" },
+            { "name": "fromJson", "parameters": ["String source"], "returnType": "NotificationModel", "static": true },
+            { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "NotificationModel" }
+          ]
+        },
+        "NotificationAction": {
+          "fields": [
+            { "name": "id", "type": "String", "required": true },
+            { "name": "label", "type": "String", "required": true },
+            { "name": "action", "type": "String", "required": true },
+            { "name": "data", "type": "String?", "required": false },
+            { "name": "icon", "type": "String?", "required": false },
+            { "name": "isPrimary", "type": "bool", "default": "false" }
+          ],
+          "methods": [
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "NotificationAction", "static": true },
+            { "name": "toJson", "parameters": [], "returnType": "String" },
+            { "name": "fromJson", "parameters": ["String source"], "returnType": "NotificationAction", "static": true }
+          ]
+        },
+        "NotificationPreferences": {
+          "fields": [
+            { "name": "pushEnabled", "type": "bool", "default": "true" },
+            { "name": "emailEnabled", "type": "bool", "default": "true" },
+            { "name": "jobNotifications", "type": "bool", "default": "true" },
+            { "name": "paymentNotifications", "type": "bool", "default": "true" },
+            { "name": "familyNotifications", "type": "bool", "default": "true" },
+            { "name": "reminderNotifications", "type": "bool", "default": "true" },
+            { "name": "marketingNotifications", "type": "bool", "default": "false" },
+            { "name": "quietHoursStart", "type": "String", "default": "22:00" },
+            { "name": "quietHoursEnd", "type": "String", "default": "07:00" },
+            { "name": "weekendQuietHours", "type": "bool", "default": "false" },
+            { "name": "mutedCategories", "type": "List<String>", "default": "const []" }
+          ],
+          "methods": [
+            { "name": "shouldDeliverNow", "parameters": [], "returnType": "bool" },
+            { "name": "isTypeEnabled", "parameters": ["String notificationType"], "returnType": "bool" },
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "NotificationPreferences", "static": true },
+            { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "NotificationPreferences" }
+          ]
+        }
+      },
+      "imports": ["dart:convert"],
+      "dependencies": []
+    },
+    "TransactionModel": {
+      "path": "frontend/data/models/transaction.dart",
+      "description": "Model representing financial transactions in the Home Hustle app including job payments, store purchases, transfers, and transaction summaries for reporting.",
+      "classes": ["TransactionModel", "TransactionSummary"],
+      "models": {
+        "TransactionModel": {
+          "fields": [
+            { "name": "id", "type": "String", "required": true },
+            { "name": "type", "type": "String", "required": true },
+            { "name": "status", "type": "String", "required": true },
+            { "name": "amount", "type": "double", "required": true },
+            { "name": "currency", "type": "String", "default": "USD" },
+            { "name": "fromAccountId", "type": "String", "required": true },
+            { "name": "fromAccountName", "type": "String", "required": true },
+            { "name": "fromUserId", "type": "String", "required": true },
+            { "name": "fromUserName", "type": "String", "required": true },
+            { "name": "toAccountId", "type": "String", "required": true },
+            { "name": "toAccountName", "type": "String", "required": true },
+            { "name": "toUserId", "type": "String", "required": true },
+            { "name": "toUserName", "type": "String", "required": true },
+            { "name": "description", "type": "String", "required": true },
+            { "name": "createdAt", "type": "DateTime", "required": true },
+            { "name": "completedAt", "type": "DateTime?", "required": false },
+            { "name": "referenceType", "type": "String?", "required": false },
+            { "name": "referenceId", "type": "String?", "required": false },
+            { "name": "categoryId", "type": "String?", "required": false },
+            { "name": "categoryName", "type": "String?", "required": false },
+            { "name": "notes", "type": "String?", "required": false },
+            { "name": "failureReason", "type": "String?", "required": false },
+            { "name": "metadata", "type": "Map<String, dynamic>?", "required": false },
+            { "name": "receiptUrl", "type": "String?", "required": false },
+            { "name": "isRecurring", "type": "bool", "default": "false" },
+            { "name": "recurringSchedule", "type": "String?", "required": false },
+            { "name": "nextRecurringDate", "type": "DateTime?", "required": false }
+          ],
+          "computedProperties": [
+            { "name": "isPending", "type": "bool", "getter": true },
+            { "name": "isCompleted", "type": "bool", "getter": true },
+            { "name": "isFailed", "type": "bool", "getter": true },
+            { "name": "isCancelled", "type": "bool", "getter": true },
+            { "name": "isDebit", "type": "bool", "getter": true },
+            { "name": "isCredit", "type": "bool", "getter": true }
+          ],
+          "methods": [
+            { "name": "getDirectionForUser", "parameters": ["String userId"], "returnType": "String" },
+            { "name": "getFormattedAmountForUser", "parameters": ["String userId"], "returnType": "String" },
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "TransactionModel", "static": true },
+            { "name": "toJson", "parameters": [], "returnType": "String" },
+            { "name": "fromJson", "parameters": ["String source"], "returnType": "TransactionModel", "static": true },
+            { "name": "copyWith", "parameters": ["various optional parameters"], "returnType": "TransactionModel" }
+          ]
+        },
+        "TransactionSummary": {
+          "fields": [
+            { "name": "startDate", "type": "DateTime", "required": true },
+            { "name": "endDate", "type": "DateTime", "required": true },
+            { "name": "totalIncome", "type": "double", "required": true },
+            { "name": "totalExpenses", "type": "double", "required": true },
+            { "name": "netAmount", "type": "double", "required": true },
+            { "name": "transactionCount", "type": "int", "required": true },
+            { "name": "incomeByCategory", "type": "Map<String, double>", "required": true },
+            { "name": "expensesByCategory", "type": "Map<String, double>", "required": true },
+            { "name": "transactionCountByType", "type": "Map<String, int>", "required": true }
+          ],
+          "methods": [
+            { "name": "toMap", "parameters": [], "returnType": "Map<String, dynamic>" },
+            { "name": "fromMap", "parameters": ["Map<String, dynamic> map"], "returnType": "TransactionSummary", "static": true },
+            { "name": "toJson", "parameters": [], "returnType": "String" },
+            { "name": "fromJson", "parameters": ["String source"], "returnType": "TransactionSummary", "static": true }
+          ]
+        }
+      },
+      "imports": ["dart:convert"],
+      "dependencies": []
+    },
     "AppRouter": "frontend/navigation/app_router.dart"
   },
   "providers": {
@@ -47,13 +614,171 @@
     "AccountSettingsScreen": "frontend/screens/settings/account_settings_screen.dart"
   },
   "constants": {
-    "Constants": "frontend/core/constants.dart",
-    "Theme": "frontend/core/theme.dart"
+    "Constants": {
+      "path": "frontend/core/constants.dart",
+      "description": "Core constants file containing all app-wide constants including API config, storage keys, enums, validation rules, UI constants, and asset paths.",
+      "constants": [
+        { "name": "kBaseUrl", "type": "String", "value": "https://api.homehustleapp.com/v1" },
+        { "name": "kApiTimeout", "type": "Duration", "value": "Duration(seconds: 30)" },
+        { "name": "kMaxRetries", "type": "int", "value": "3" },
+        { "name": "kAppName", "type": "String", "value": "Home Hustle" },
+        { "name": "kAuthTokenKey", "type": "String", "value": "authToken" },
+        { "name": "kUserDataKey", "type": "String", "value": "userData" },
+        { "name": "kIsFirstTimeKey", "type": "String", "value": "isFirstTime" },
+        { "name": "kThemeModeKey", "type": "String", "value": "themeMode" },
+        { "name": "kNotificationSettingsKey", "type": "String", "value": "notificationSettings" },
+        { "name": "kLanguageKey", "type": "String", "value": "language" },
+        { "name": "kAccountTypeAdult", "type": "String", "value": "adult" },
+        { "name": "kAccountTypeChild", "type": "String", "value": "child" },
+        { "name": "kJobStatusOpen", "type": "String", "value": "open" },
+        { "name": "kJobStatusInProgress", "type": "String", "value": "in_progress" },
+        { "name": "kJobStatusCompleted", "type": "String", "value": "completed" },
+        { "name": "kJobStatusCancelled", "type": "String", "value": "cancelled" },
+        { "name": "kJobStatusPendingApproval", "type": "String", "value": "pending_approval" },
+        { "name": "kJobTypeFamily", "type": "String", "value": "family" },
+        { "name": "kJobTypePublic", "type": "String", "value": "public" },
+        { "name": "kMinPasswordLength", "type": "int", "value": "8" },
+        { "name": "kMaxPasswordLength", "type": "int", "value": "128" },
+        { "name": "kDefaultPadding", "type": "double", "value": "16.0" },
+        { "name": "kSmallPadding", "type": "double", "value": "8.0" },
+        { "name": "kLargePadding", "type": "double", "value": "24.0" },
+        { "name": "kDefaultBorderRadius", "type": "double", "value": "12.0" },
+        { "name": "kSmallBorderRadius", "type": "double", "value": "8.0" },
+        { "name": "kPrimaryColor", "type": "Color", "value": "Color(0xFF4A90E2)" },
+        { "name": "kSecondaryColor", "type": "Color", "value": "Color(0xFF50E3C2)" },
+        { "name": "kErrorColor", "type": "Color", "value": "Color(0xFFE74C3C)" },
+        { "name": "kWarningColor", "type": "Color", "value": "Color(0xFFF39C12)" },
+        { "name": "kSuccessColor", "type": "Color", "value": "Color(0xFF27AE60)" },
+        { "name": "kInfoColor", "type": "Color", "value": "Color(0xFF3498DB)" }
+      ],
+      "lists": [
+        { "name": "kJobCategories", "type": "List<String>", "items": ["Cleaning", "Yard Work", "Pet Care", "Organizing", "Errands", "Tech Help", "Tutoring", "Other"] }
+      ],
+      "imports": ["package:flutter/material.dart"]
+  },
+  "Theme": {
+    "path": "frontend/core/theme.dart",
+    "description": "App theme configuration for Material Design 3 with light/dark themes and role-specific customizations for adults and children.",
+    "classes": ["AppTheme"],
+    "properties": [
+      { "name": "lightTheme", "type": "ThemeData", "static": true },
+      { "name": "darkTheme", "type": "ThemeData", "static": true }
+    ],
+    "methods": [
+      { "name": "getTheme", "parameters": ["Brightness brightness"], "returnType": "ThemeData", "static": true },
+      { "name": "getAdultTheme", "parameters": ["required Brightness brightness"], "returnType": "ThemeData", "static": true },
+      { "name": "getChildTheme", "parameters": ["required Brightness brightness"], "returnType": "ThemeData", "static": true }
+    ],
+    "imports": [
+      "package:flutter/material.dart",
+      "package:flutter/services.dart",
+      "constants.dart"
+    ],
+    "dependencies": ["Constants"]
+  }
   },
   "utils": {
-    "SnackbarUtils": "frontend/core/utils/snackbar_utils.dart",
-    "FormatUtils": "frontend/core/utils/format_utils.dart",
-    "Validators": "frontend/core/utils/validators.dart"
+    "SnackbarUtils": {
+      "path": "frontend/core/utils/snackbar_utils.dart",
+      "description": "Utility functions for displaying consistent snackbar notifications throughout the app with success, error, warning, and info variants.",
+      "topLevelFunctions": [
+        { "name": "showSuccessSnackbar", "parameters": ["String message", "Duration? duration"], "returnType": "void" },
+        { "name": "showErrorSnackbar", "parameters": ["String message", "Duration? duration"], "returnType": "void" },
+        { "name": "showWarningSnackbar", "parameters": ["String message", "Duration? duration"], "returnType": "void" },
+        { "name": "showInfoSnackbar", "parameters": ["String message", "Duration? duration"], "returnType": "void" },
+        { "name": "showCustomSnackbar", "parameters": ["String message", "Color? backgroundColor", "Color? textColor", "IconData? icon", "Duration? duration", "SnackBarAction? action"], "returnType": "void" },
+        { "name": "hideCurrentSnackbar", "parameters": [], "returnType": "void" },
+        { "name": "clearSnackbars", "parameters": [], "returnType": "void" }
+      ],
+      "topLevelVariables": [
+        { "name": "messengerKey", "type": "GlobalKey<ScaffoldMessengerState>", "final": true }
+      ],
+      "imports": ["package:flutter/material.dart", "../constants.dart"],
+      "dependencies": ["Constants"]
+    },
+    "FormatUtils": {
+      "path": "frontend/core/utils/format_utils.dart",
+      "description": "Utility class containing all formatting functions used throughout the app including currency, date/time, phone numbers, names, file sizes, and various display formatters.",
+      "classes": ["FormatUtils"],
+      "topLevelFunctions": [
+        { "name": "formatCurrency", "parameters": ["double amount", "bool showSymbol = true"], "returnType": "String", "static": true },
+        { "name": "formatCurrencyFromCents", "parameters": ["int cents", "bool showSymbol = true"], "returnType": "String", "static": true },
+        { "name": "formatDate", "parameters": ["DateTime date"], "returnType": "String", "static": true },
+        { "name": "formatDateTime", "parameters": ["DateTime dateTime"], "returnType": "String", "static": true },
+        { "name": "formatTime", "parameters": ["DateTime time"], "returnType": "String", "static": true },
+        { "name": "formatDayMonth", "parameters": ["DateTime date"], "returnType": "String", "static": true },
+        { "name": "formatMonthYear", "parameters": ["DateTime date"], "returnType": "String", "static": true },
+        { "name": "formatFullDate", "parameters": ["DateTime date"], "returnType": "String", "static": true },
+        { "name": "formatShortDate", "parameters": ["DateTime date"], "returnType": "String", "static": true },
+        { "name": "formatRelativeTime", "parameters": ["DateTime dateTime"], "returnType": "String", "static": true },
+        { "name": "formatPhoneNumber", "parameters": ["String phoneNumber"], "returnType": "String", "static": true },
+        { "name": "formatName", "parameters": ["String name"], "returnType": "String", "static": true },
+        { "name": "formatFullName", "parameters": ["String firstName", "String lastName"], "returnType": "String", "static": true },
+        { "name": "formatInitials", "parameters": ["String firstName", "String lastName"], "returnType": "String", "static": true },
+        { "name": "formatNumber", "parameters": ["num number", "int? decimalPlaces"], "returnType": "String", "static": true },
+        { "name": "formatPercent", "parameters": ["double value", "int decimalPlaces = 0"], "returnType": "String", "static": true },
+        { "name": "formatCompactNumber", "parameters": ["num number"], "returnType": "String", "static": true },
+        { "name": "formatFileSize", "parameters": ["int bytes"], "returnType": "String", "static": true },
+        { "name": "formatDuration", "parameters": ["Duration duration"], "returnType": "String", "static": true },
+        { "name": "formatJobStatus", "parameters": ["String status"], "returnType": "String", "static": true },
+        { "name": "formatAccountType", "parameters": ["String accountType"], "returnType": "String", "static": true },
+        { "name": "formatJobType", "parameters": ["String jobType"], "returnType": "String", "static": true },
+        { "name": "truncateText", "parameters": ["String text", "int maxLength", "String ellipsis = '...'"], "returnType": "String", "static": true },
+        { "name": "formatAge", "parameters": ["DateTime birthDate"], "returnType": "String", "static": true },
+        { "name": "formatTimeRange", "parameters": ["DateTime start", "DateTime end"], "returnType": "String", "static": true },
+        { "name": "formatDateRange", "parameters": ["DateTime start", "DateTime end"], "returnType": "String", "static": true },
+        { "name": "formatOrdinal", "parameters": ["int number"], "returnType": "String", "static": true }
+      ],
+      "constants": [
+        { "name": "_dateFormatter", "type": "DateFormat", "static": true, "final": true },
+        { "name": "_dateTimeFormatter", "type": "DateFormat", "static": true, "final": true },
+        { "name": "_timeFormatter", "type": "DateFormat", "static": true, "final": true },
+        { "name": "_dayMonthFormatter", "type": "DateFormat", "static": true, "final": true },
+        { "name": "_monthYearFormatter", "type": "DateFormat", "static": true, "final": true },
+        { "name": "_fullDateFormatter", "type": "DateFormat", "static": true, "final": true },
+        { "name": "_shortDateFormatter", "type": "DateFormat", "static": true, "final": true },
+        { "name": "_currencyFormatter", "type": "NumberFormat", "static": true, "final": true },
+        { "name": "_decimalFormatter", "type": "NumberFormat", "static": true, "final": true },
+        { "name": "_compactFormatter", "type": "NumberFormat", "static": true, "final": true }
+      ],
+      "imports": [
+        "package:intl/intl.dart",
+        "package:flutter/material.dart"
+      ],
+      "dependencies": []
+    },
+    "Validators": {
+      "path": "frontend/core/utils/validators.dart",
+      "description": "Utility class containing all form validation functions used throughout the app including email, password, name, currency, age, and job-specific validations.",
+      "classes": ["Validators"],
+      "topLevelFunctions": [
+        { "name": "validateEmail", "parameters": ["String? value"], "returnType": "String?", "static": true },
+        { "name": "validatePassword", "parameters": ["String? value"], "returnType": "String?", "static": true },
+        { "name": "validatePasswordConfirmation", "parameters": ["String? value", "String password"], "returnType": "String?", "static": true },
+        { "name": "validateName", "parameters": ["String? value", "String fieldName"], "returnType": "String?", "static": true },
+        { "name": "validatePhoneNumber", "parameters": ["String? value"], "returnType": "String?", "static": true },
+        { "name": "validateCurrency", "parameters": ["String? value", "double? minAmount", "double? maxAmount", "bool required = true"], "returnType": "String?", "static": true },
+        { "name": "validateAge", "parameters": ["String? value"], "returnType": "String?", "static": true },
+        { "name": "validateBirthDate", "parameters": ["DateTime? birthDate"], "returnType": "String?", "static": true },
+        { "name": "validateJobTitle", "parameters": ["String? value"], "returnType": "String?", "static": true },
+        { "name": "validateJobDescription", "parameters": ["String? value"], "returnType": "String?", "static": true },
+        { "name": "validateInviteCode", "parameters": ["String? value"], "returnType": "String?", "static": true },
+        { "name": "validateTextField", "parameters": ["String? value", "required String fieldName", "bool required = true", "int? minLength", "int? maxLength", "RegExp? pattern", "String? patternMessage"], "returnType": "String?", "static": true },
+        { "name": "validateUrl", "parameters": ["String? value", "bool required = false"], "returnType": "String?", "static": true },
+        { "name": "validateSelection", "parameters": ["T? value", "required String fieldName", "required List<T> validOptions"], "returnType": "String?", "static": true },
+        { "name": "validateNumber", "parameters": ["String? value", "required String fieldName", "bool required = true", "num? min", "num? max", "bool allowDecimals = true"], "returnType": "String?", "static": true }
+      ],
+      "constants": [
+        { "name": "_emailRegExp", "type": "RegExp", "static": true, "final": true },
+        { "name": "_phoneRegExp", "type": "RegExp", "static": true, "final": true },
+        { "name": "_nameRegExp", "type": "RegExp", "static": true, "final": true }
+      ],
+      "imports": [
+        "package:flutter/material.dart",
+        "../constants.dart"
+      ],
+      "dependencies": ["Constants"]
+    }
   },
   "backend": {
     "registerUser": "backend/functions/auth/registerUser.js",

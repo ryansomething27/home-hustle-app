@@ -1,7 +1,7 @@
 name: home_hustle_app
 description: >
   Home Hustle is a mobile app teaching kids financial literacy and entrepreneurship through household chores and community jobs.
-publish_to: "none" # Remove this line if you plan to publish to pub.dev
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -23,19 +23,20 @@ dependencies:
   dio: ^5.4.0
   
   # Utilities
-  intl: ^0.20.2  # Updated to match flutter_localizations requirement
+  intl: ^0.20.2
   url_launcher: ^6.2.2
   
   # Local storage
   shared_preferences: ^2.2.2
   flutter_secure_storage: ^9.0.0
 
-  # Firebase (using compatible versions)
+  # Firebase (compatible versions)
   firebase_core: ^2.24.2
   firebase_auth: ^4.15.3
   cloud_firestore: ^4.13.6
   firebase_storage: ^11.5.6
   firebase_messaging: ^14.7.9
+  flutter_local_notifications: ^17.0.0  # ✅ Added for local notifications
 
   # Image handling
   cached_network_image: ^3.3.0
@@ -44,7 +45,7 @@ dependencies:
   # Permissions
   permission_handler: ^11.1.0
 
-  # State management utilities
+  # State management
   flutter_hooks: ^0.20.3
   hooks_riverpod: ^2.4.9
 
