@@ -1,5 +1,6 @@
 // frontend/data/providers/auth_provider.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/user.dart';
@@ -56,51 +57,49 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // Initialize auth state (called in constructor)
   Future<void> _initialize() async {
-    print('🔍 AUTH INIT: Starting initialization');
+    debugPrint('🔍 AUTH INIT: Starting initialization');
     
     try {
       // Add a small delay to show splash screen
       await Future.delayed(const Duration(seconds: 1));
       
-      print('🔍 AUTH INIT: Checking if logged in...');
+      debugPrint('🔍 AUTH INIT: Checking if logged in...');
       final isLoggedIn = await _authService.isLoggedIn();
-      print('🔍 AUTH INIT: isLoggedIn = $isLoggedIn');
+      debugPrint('🔍 AUTH INIT: isLoggedIn = $isLoggedIn');
       
       if (isLoggedIn) {
         try {
-          print('🔍 AUTH INIT: Getting current user...');
+          debugPrint('🔍 AUTH INIT: Getting current user...');
           final user = await _authService.getCurrentUser();
-          print('🔍 AUTH INIT: Got user: ${user?.email}');
+          debugPrint('🔍 AUTH INIT: Got user: ${user?.email}');
           
           if (user != null) {
             final isFirstTime = await _authService.isFirstTimeUser();
             state = AuthState(
               user: user,
               isFirstTimeUser: isFirstTime,
-              isLoading: false,
             );
           } else {
             // Firebase user exists but no local user data
-            print('🔍 AUTH INIT: No local user data, logging out');
+            debugPrint('🔍 AUTH INIT: No local user data, logging out');
             await _authService.logout();
-            state = const AuthState(isLoading: false);
+            state = const AuthState();
           }
-        } catch (e) {
-          print('🔍 AUTH INIT: Error getting user data: $e');
+        } on Exception catch (e) {
+          debugPrint('🔍 AUTH INIT: Error getting user data: $e');
           // If we can't get user data, treat as not logged in
-          state = const AuthState(isLoading: false);
+          state = const AuthState();
         }
       } else {
-        print('🔍 AUTH INIT: Not logged in');
-        state = const AuthState(isLoading: false);
+        debugPrint('🔍 AUTH INIT: Not logged in');
+        state = const AuthState();
       }
       
-      print('🔍 AUTH INIT: Initialization complete. State: isLoading=${state.isLoading}, isAuthenticated=${state.isAuthenticated}');
-    } catch (e) {
-      print('🔍 AUTH INIT ERROR: $e');
+      debugPrint('🔍 AUTH INIT: Initialization complete. State: isLoading=${state.isLoading}, isAuthenticated=${state.isAuthenticated}');
+    } on Exception catch (e) {
+      debugPrint('🔍 AUTH INIT ERROR: $e');
       state = AuthState(
         error: e.toString(),
-        isLoading: false,
       );
     }
   }
@@ -127,7 +126,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState(
       user: mockUser,
       isFirstTimeUser: false,
-      isLoading: false,
     );
   }
 
@@ -154,9 +152,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       state = AuthState(
         user: user,
-        isLoading: false,
       );
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -183,9 +180,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         user: user,
         isFirstTimeUser: isFirstTime,
-        isLoading: false,
       );
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -200,8 +196,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     
     try {
       await _authService.logout();
-      state = const AuthState(isLoading: false);
-    } catch (e) {
+      state = const AuthState();
+    } on Exception catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -210,11 +206,104 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Other methods remain the same...
-  
+  // Refresh user data from backend
+  Future<void> refreshUserData() async {
+    final currentUser = state.user;
+    if (currentUser == null) {
+      return;
+    }
+
+    try {
+      state = state.copyWith(isLoading: true);
+      
+      // Re-fetch user data from backend
+      final user = await _authService.getCurrentUser();
+      
+      if (user != null) {
+        state = state.copyWith(
+          user: user,
+          isLoading: false,
+        );
+      } else {
+        // If we can't get user data, something is wrong
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Failed to refresh user data',
+        );
+      }
+    } on Exception catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  // Send email verification
+  Future<void> sendEmailVerification() async {
+    try {
+      await _authService.resendVerificationEmail();
+    } on Exception catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    }
+  }
+
+  // Update user profile
+  Future<void> updateProfile(Map<String, dynamic> updates) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    
+    try {
+      final updatedUser = await _authService.updateUserProfile(updates: updates);
+      
+      state = state.copyWith(
+        user: updatedUser,
+        isLoading: false,
+      );
+    } on Exception catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+      rethrow;
+    }
+  }
+
+  // Reset password
+  Future<void> resetPassword(String email) async {
+    try {
+      await _authService.resetPassword(email);
+    } on Exception catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    }
+  }
+
+  // Delete account
+  Future<void> deleteAccount() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    
+    try {
+      await _authService.deleteAccount();
+      state = const AuthState();
+    } on Exception catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+      rethrow;
+    }
+  }
+
   // Clear error
   void clearError() {
     state = state.copyWith(clearError: true);
+  }
+
+  // Set first time user flag
+  Future<void> setFirstTimeUser({required bool isFirstTime}) async {
+    await _authService.setFirstTimeUser(isFirstTime: isFirstTime);
+    state = state.copyWith(isFirstTimeUser: isFirstTime);
   }
 }
 
@@ -224,4 +313,42 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(authService);
 });
 
-// All the other providers remain the same...
+// Convenient provider to get current user
+final currentUserProvider = Provider<UserModel?>((ref) {
+  return ref.watch(authProvider).user;
+});
+
+// Provider to check if user is authenticated
+final isAuthenticatedProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isAuthenticated;
+});
+
+// Provider to check if user is adult
+final isAdultUserProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isAdult;
+});
+
+// Provider to check if user is child
+final isChildUserProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isChild;
+});
+
+// Provider to check if email is verified
+final isEmailVerifiedProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isEmailVerified;
+});
+
+// Provider to check if loading
+final isAuthLoadingProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isLoading;
+});
+
+// Provider to get auth error
+final authErrorProvider = Provider<String?>((ref) {
+  return ref.watch(authProvider).error;
+});
+
+// Provider to check if first time user
+final isFirstTimeUserProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isFirstTimeUser;
+});

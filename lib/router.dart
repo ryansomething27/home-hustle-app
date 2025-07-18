@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'frontend/data/providers/auth_provider.dart';
-import 'frontend/screens/splash_screen.dart';
 import 'frontend/screens/home_screen.dart';
+import 'frontend/screens/splash_screen.dart';
 // Import other screens as you create them
 // import 'frontend/screens/login_screen.dart';
 // import 'frontend/screens/job_details_screen.dart';

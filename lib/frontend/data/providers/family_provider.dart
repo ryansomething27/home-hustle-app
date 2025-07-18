@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/user.dart';
+import '../providers/auth_provider.dart';
 import '../services/family_service.dart';
-import 'auth_provider.dart';
 
 // Family service provider
 final familyServiceProvider = Provider<FamilyService>((ref) {
@@ -11,12 +11,6 @@ final familyServiceProvider = Provider<FamilyService>((ref) {
 
 // Family state
 class FamilyState {
-  final String? familyId;
-  final String? familyName;
-  final List<UserModel> members;
-  final String? inviteCode;
-  final bool isLoading;
-  final String? error;
 
   const FamilyState({
     this.familyId,
@@ -26,6 +20,12 @@ class FamilyState {
     this.isLoading = false,
     this.error,
   });
+  final String? familyId;
+  final String? familyName;
+  final List<UserModel> members;
+  final String? inviteCode;
+  final bool isLoading;
+  final String? error;
 
   bool get hasFamily => familyId != null;
 
@@ -51,16 +51,18 @@ class FamilyState {
 
 // Family notifier
 class FamilyNotifier extends StateNotifier<FamilyState> {
-  final FamilyService _familyService;
-  final Ref _ref;
 
   FamilyNotifier(this._familyService, this._ref) : super(const FamilyState()) {
     _initialize();
   }
+  final FamilyService _familyService;
+  final Ref _ref;
 
   Future<void> _initialize() async {
     final user = _ref.read(currentUserProvider);
-    if (user == null || user.familyId == null) return;
+    if (user == null || user.familyId == null) {
+      return;
+    }
 
     await loadFamily();
   }

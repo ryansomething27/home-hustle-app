@@ -6,9 +6,9 @@ import '../core/constants.dart';
 import '../data/models/job.dart';
 import '../data/providers/auth_provider.dart';
 import '../data/providers/job_provider.dart';
+import '../widgets/custom_button.dart';
 import '../widgets/job_card.dart';
 import '../widgets/loading_indicator.dart';
-import '../widgets/custom_button.dart';
 
 class JobListScreen extends ConsumerStatefulWidget {
   const JobListScreen({super.key});
@@ -26,6 +26,20 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Load initial data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
+  }
+
+  Future<void> _loadInitialData() async {
+    final authState = ref.read(authProvider);
+    if (authState.isAdult) {
+      await ref.read(jobProvider.notifier).loadCreatedJobs();
+    } else {
+      await ref.read(jobProvider.notifier).loadAvailableJobs();
+      await ref.read(jobProvider.notifier).loadAssignedJobs();
+    }
   }
 
   @override
@@ -34,10 +48,12 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
     super.dispose();
   }
 
-  List<JobModel> _filterAndSortJobs(List<JobModel> jobs, {required bool isAdult}) {
+  List<JobModel> _filterAndSortJobs(List<JobModel> jobs) {
     // Filter by status
-    var filtered = jobs.where((job) {
-      if (_filterStatus == 'all') return true;
+    final filtered = jobs.where((job) {
+      if (_filterStatus == 'all') {
+        return true;
+      }
       return job.status == _filterStatus;
     }).toList();
 
@@ -61,7 +77,7 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const CreateJobBottomSheet(),
+      builder: (BuildContext context) => const CreateJobBottomSheet(),
     );
   }
 
@@ -69,8 +85,13 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isAdult = authState.isAdult;
-    final jobsAsync = ref.watch(jobsProvider);
-    final theme = Theme.of(context);
+    final jobState = ref.watch(jobProvider);
+    
+    if (jobState.isLoading && jobState.createdJobs.isEmpty && jobState.availableJobs.isEmpty) {
+      return const Scaffold(
+        body: Center(child: LoadingIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -86,7 +107,7 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.filter_list),
-            onSelected: (value) {
+            onSelected: (String value) {
               setState(() {
                 if (value.startsWith('status_')) {
                   _filterStatus = value.substring(7);
@@ -95,7 +116,7 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
                 }
               });
             },
-            itemBuilder: (context) => [
+            itemBuilder: (BuildContext context) => [
               const PopupMenuItem(
                 value: 'status_all',
                 child: Text('All Status'),
@@ -129,73 +150,42 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
           ),
         ],
       ),
-      body: jobsAsync.when(
-        data: (jobs) {
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              // Tab 1: My Jobs (Adult) / Available Jobs (Child)
-              _buildJobList(
-                jobs: _filterAndSortJobs(
-                  isAdult 
-                    ? jobs.where((job) => job.createdById == authState.user?.id).toList()
-                    : jobs.where((job) => job.isAvailable).toList(),
-                  isAdult: isAdult,
-                ),
-                emptyMessage: isAdult 
-                  ? 'You haven\'t created any jobs yet'
-                  : 'No jobs available right now',
-                isAdult: isAdult,
-              ),
-              
-              // Tab 2: All Jobs (Adult) / My Jobs (Child)
-              _buildJobList(
-                jobs: _filterAndSortJobs(
-                  isAdult 
-                    ? jobs
-                    : jobs.where((job) => 
-                        job.assignedToId == authState.user?.id ||
-                        job.applications?.any((app) => app.applicantId == authState.user?.id) == true
-                      ).toList(),
-                  isAdult: isAdult,
-                ),
-                emptyMessage: isAdult 
-                  ? 'No jobs in the system'
-                  : 'You haven\'t applied to any jobs yet',
-                isAdult: isAdult,
-              ),
-              
-              // Tab 3: History
-              _buildJobList(
-                jobs: _filterAndSortJobs(
-                  jobs.where((job) => 
-                    job.status == kJobStatusCompleted || 
-                    job.status == kJobStatusCancelled
-                  ).toList(),
-                  isAdult: isAdult,
-                ),
-                emptyMessage: 'No job history',
-                isAdult: isAdult,
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: kErrorColor),
-              const SizedBox(height: kDefaultPadding),
-              Text('Error loading jobs: $error'),
-              const SizedBox(height: kDefaultPadding),
-              CustomButton(
-                text: 'Retry',
-                onPressed: () => ref.refresh(jobsProvider),
-              ),
-            ],
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Tab 1: My Jobs (Adult) / Available Jobs (Child)
+          _buildJobList(
+            jobs: _filterAndSortJobs(
+              isAdult ? jobState.createdJobs : jobState.availableJobs,
+            ),
+            emptyMessage: isAdult 
+              ? 'You haven\'t created any jobs yet'
+              : 'No jobs available right now',
+            isAdult: isAdult,
           ),
-        ),
+          
+          // Tab 2: All Jobs (Adult) / My Jobs (Child)
+          _buildJobList(
+            jobs: _filterAndSortJobs(
+              isAdult 
+                ? [...jobState.createdJobs, ...jobState.familyJobs]
+                : jobState.assignedJobs,
+            ),
+            emptyMessage: isAdult 
+              ? 'No jobs in the system'
+              : 'You haven\'t been assigned any jobs yet',
+            isAdult: isAdult,
+          ),
+          
+          // Tab 3: History
+          _buildJobList(
+            jobs: _filterAndSortJobs(
+              ref.watch(completedJobsProvider),
+            ),
+            emptyMessage: 'No job history',
+            isAdult: isAdult,
+          ),
+        ],
       ),
       floatingActionButton: isAdult
         ? FloatingActionButton.extended(
@@ -238,10 +228,12 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
     return ListView.builder(
       padding: const EdgeInsets.all(kDefaultPadding),
       itemCount: jobs.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (BuildContext context, int index) {
         final job = jobs[index];
-        final application = job.applications?.firstWhere(
-          (app) => app.applicantId == ref.read(authProvider).user?.id,
+        final authState = ref.read(authProvider);
+        final applications = ref.watch(jobApplicationsProvider(job.id));
+        final userApplication = applications?.firstWhere(
+          (app) => app.applicantId == authState.user?.id,
           orElse: () => JobApplication(
             id: '',
             jobId: '',
@@ -256,16 +248,22 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
           padding: const EdgeInsets.only(bottom: kDefaultPadding),
           child: JobCard(
             job: job,
-            application: application.id.isNotEmpty ? application : null,
-            hasApplied: application.id.isNotEmpty,
+            application: userApplication?.id.isNotEmpty == true ? userApplication : null,
+            hasApplied: userApplication?.id.isNotEmpty == true,
             onTap: () => context.push('/job/${job.id}'),
-            onEdit: isAdult ? () => _showEditJobDialog(job) : null,
-            onDelete: isAdult ? () => _confirmDeleteJob(job) : null,
-            onApply: !isAdult && job.isAvailable ? () => _applyToJob(job) : null,
-            onViewApplications: isAdult && job.hasApplications 
+            onEdit: isAdult && job.createdById == authState.user?.id 
+              ? () => _showEditJobDialog(job) 
+              : null,
+            onDelete: isAdult && job.createdById == authState.user?.id 
+              ? () => _confirmDeleteJob(job) 
+              : null,
+            onApply: !isAdult && job.isAvailable && userApplication?.id.isEmpty == true
+              ? () => _applyToJob(job) 
+              : null,
+            onViewApplications: isAdult && job.createdById == authState.user?.id && (applications?.isNotEmpty ?? false)
               ? () => context.push('/job/${job.id}/applications')
               : null,
-            onMarkCompleted: isAdult && job.status == kJobStatusInProgress
+            onMarkCompleted: isAdult && job.status == kJobStatusInProgress && job.createdById == authState.user?.id
               ? () => _markJobCompleted(job)
               : null,
           ),
@@ -278,14 +276,14 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => CreateJobBottomSheet(jobToEdit: job),
+      builder: (BuildContext context) => CreateJobBottomSheet(jobToEdit: job),
     );
   }
 
   void _confirmDeleteJob(JobModel job) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         title: const Text('Delete Job?'),
         content: Text('Are you sure you want to delete "${job.title}"?'),
         actions: [
@@ -297,21 +295,23 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
             onPressed: () async {
               Navigator.of(context).pop();
               try {
-                await ref.read(jobsProvider.notifier).deleteJob(job.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Job deleted successfully')),
-                  );
+                await ref.read(jobProvider.notifier).deleteJob(job.id);
+                if (!context.mounted) {
+                  return;
                 }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting job: $e'),
-                      backgroundColor: kErrorColor,
-                    ),
-                  );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Job deleted successfully')),
+                );
+              } on Exception catch (e) {
+                if (!context.mounted) {
+                  return;
                 }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting job: $e'),
+                    backgroundColor: kErrorColor,
+                  ),
+                );
               }
             },
             child: const Text('Delete', style: TextStyle(color: kErrorColor)),
@@ -322,9 +322,11 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
   }
 
   void _applyToJob(JobModel job) {
+    String? applicationNote;
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         title: Text('Apply to ${job.title}?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -340,8 +342,8 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
                 hintText: 'Tell them why you\'re perfect for this job!',
               ),
               maxLines: 3,
-              onChanged: (value) {
-                // Store application message
+              onChanged: (String value) {
+                applicationNote = value;
               },
             ),
           ],
@@ -356,21 +358,26 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
             onPressed: () async {
               Navigator.of(context).pop();
               try {
-                await ref.read(jobsProvider.notifier).applyToJob(job.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Application submitted!')),
-                  );
+                await ref.read(jobProvider.notifier).applyToJob(
+                  job.id,
+                  note: applicationNote,
+                );
+                if (!context.mounted) {
+                  return;
                 }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error applying: $e'),
-                      backgroundColor: kErrorColor,
-                    ),
-                  );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Application submitted!')),
+                );
+              } on Exception catch (e) {
+                if (!context.mounted) {
+                  return;
                 }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error applying: $e'),
+                    backgroundColor: kErrorColor,
+                  ),
+                );
               }
             },
           ),
@@ -382,7 +389,7 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
   void _markJobCompleted(JobModel job) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         title: const Text('Mark Job as Completed?'),
         content: Text('This will mark "${job.title}" as completed and pay the assigned worker.'),
         actions: [
@@ -395,21 +402,23 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
             onPressed: () async {
               Navigator.of(context).pop();
               try {
-                await ref.read(jobsProvider.notifier).completeJob(job.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Job completed and payment sent!')),
-                  );
+                await ref.read(jobProvider.notifier).completeJob(job.id);
+                if (!context.mounted) {
+                  return;
                 }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error completing job: $e'),
-                      backgroundColor: kErrorColor,
-                    ),
-                  );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Job completed and payment sent!')),
+                );
+              } on Exception catch (e) {
+                if (!context.mounted) {
+                  return;
                 }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error completing job: $e'),
+                    backgroundColor: kErrorColor,
+                  ),
+                );
               }
             },
           ),
@@ -421,9 +430,9 @@ class _JobListScreenState extends ConsumerState<JobListScreen> with SingleTicker
 
 // Create/Edit Job Bottom Sheet
 class CreateJobBottomSheet extends ConsumerStatefulWidget {
-  final JobModel? jobToEdit;
-
   const CreateJobBottomSheet({super.key, this.jobToEdit});
+  
+  final JobModel? jobToEdit;
 
   @override
   ConsumerState<CreateJobBottomSheet> createState() => _CreateJobBottomSheetState();
@@ -461,26 +470,25 @@ class _CreateJobBottomSheetState extends ConsumerState<CreateJobBottomSheet> {
   }
 
   Future<void> _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
       if (widget.jobToEdit != null) {
-        await ref.read(jobsProvider.notifier).updateJob(
-          widget.jobToEdit!.id,
-          {
-            'title': _titleController.text.trim(),
-            'description': _descriptionController.text.trim(),
-            'wage': double.parse(_wageController.text),
-            'wageType': _wageType,
-            'jobType': _jobType,
-            'category': _category,
-            'isUrgent': _isUrgent,
-          },
+        await ref.read(jobProvider.notifier).updateJob(
+          jobId: widget.jobToEdit!.id,
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          wage: double.parse(_wageController.text),
+          wageType: _wageType,
+          category: _category,
+          isUrgent: _isUrgent,
         );
       } else {
-        await ref.read(jobsProvider.notifier).createJob(
+        await ref.read(jobProvider.notifier).createJob(
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
           wage: double.parse(_wageController.text),
@@ -491,23 +499,25 @@ class _CreateJobBottomSheetState extends ConsumerState<CreateJobBottomSheet> {
         );
       }
 
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.jobToEdit != null ? 'Job updated!' : 'Job created!'),
-          ),
-        );
+      if (!mounted) {
+        return;
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: kErrorColor,
-          ),
-        );
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.jobToEdit != null ? 'Job updated!' : 'Job created!'),
+        ),
+      );
+    } on Exception catch (e) {
+      if (!mounted) {
+        return;
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: kErrorColor,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -527,145 +537,147 @@ class _CreateJobBottomSheetState extends ConsumerState<CreateJobBottomSheet> {
         padding: const EdgeInsets.all(kDefaultPadding),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.jobToEdit != null ? 'Edit Job' : 'Create New Job',
-                style: theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: kLargePadding),
-              
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Job Title',
-                  prefixIcon: Icon(Icons.work),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.jobToEdit != null ? 'Edit Job' : 'Create New Job',
+                  style: theme.textTheme.headlineSmall,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: kDefaultPadding),
-              
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  prefixIcon: Icon(Icons.description),
+                const SizedBox(height: kLargePadding),
+                
+                TextFormField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Job Title',
+                    prefixIcon: Icon(Icons.work),
+                  ),
+                  validator: (String? value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a title';
+                    }
+                    return null;
+                  },
                 ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: kDefaultPadding),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _wageController,
-                      decoration: const InputDecoration(
-                        labelText: 'Wage',
-                        prefixIcon: Icon(Icons.attach_money),
+                const SizedBox(height: kDefaultPadding),
+                
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    prefixIcon: Icon(Icons.description),
+                  ),
+                  maxLines: 3,
+                  validator: (String? value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a description';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: kDefaultPadding),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _wageController,
+                        decoration: const InputDecoration(
+                          labelText: 'Wage',
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (String? value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Required';
+                          }
+                          if (double.tryParse(value) == null) {
+                            return 'Invalid';
+                          }
+                          return null;
+                        },
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Required';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Invalid';
-                        }
-                        return null;
-                      },
                     ),
-                  ),
-                  const SizedBox(width: kDefaultPadding),
-                  DropdownButton<String>(
-                    value: _wageType,
-                    items: const [
-                      DropdownMenuItem(value: 'fixed', child: Text('Fixed')),
-                      DropdownMenuItem(value: 'hourly', child: Text('Hourly')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _wageType = value!;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: kDefaultPadding),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _jobType,
-                      decoration: const InputDecoration(
-                        labelText: 'Job Type',
-                        prefixIcon: Icon(Icons.category),
-                      ),
+                    const SizedBox(width: kDefaultPadding),
+                    DropdownButton<String>(
+                      value: _wageType,
                       items: const [
-                        DropdownMenuItem(value: 'family', child: Text('Family Job')),
-                        DropdownMenuItem(value: 'public', child: Text('Public Job')),
+                        DropdownMenuItem(value: 'fixed', child: Text('Fixed')),
+                        DropdownMenuItem(value: 'hourly', child: Text('Hourly')),
                       ],
-                      onChanged: (value) {
+                      onChanged: (String? value) {
                         setState(() {
-                          _jobType = value!;
+                          _wageType = value!;
                         });
                       },
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: kDefaultPadding),
-              
-              DropdownButtonFormField<String>(
-                value: _category,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  prefixIcon: Icon(Icons.label),
+                  ],
                 ),
-                items: kJobCategories.map((cat) => 
-                  DropdownMenuItem(value: cat, child: Text(cat))
-                ).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _category = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: kDefaultPadding),
-              
-              SwitchListTile(
-                title: const Text('Mark as Urgent'),
-                subtitle: const Text('This job needs immediate attention'),
-                value: _isUrgent,
-                onChanged: (value) {
-                  setState(() {
-                    _isUrgent = value;
-                  });
-                },
-              ),
-              const SizedBox(height: kLargePadding),
-              
-              CustomButton(
-                text: widget.jobToEdit != null ? 'Update Job' : 'Create Job',
-                onPressed: _isLoading ? null : _handleSubmit,
-                isLoading: _isLoading,
-                fullWidth: true,
-              ),
-            ],
+                const SizedBox(height: kDefaultPadding),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _jobType,
+                        decoration: const InputDecoration(
+                          labelText: 'Job Type',
+                          prefixIcon: Icon(Icons.category),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'family', child: Text('Family Job')),
+                          DropdownMenuItem(value: 'public', child: Text('Public Job')),
+                        ],
+                        onChanged: (String? value) {
+                          setState(() {
+                            _jobType = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: kDefaultPadding),
+                
+                DropdownButtonFormField<String>(
+                  value: _category,
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    prefixIcon: Icon(Icons.label),
+                  ),
+                  items: kJobCategories.map((String cat) => 
+                    DropdownMenuItem(value: cat, child: Text(cat))
+                  ).toList(),
+                  onChanged: (String? value) {
+                    setState(() {
+                      _category = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: kDefaultPadding),
+                
+                SwitchListTile(
+                  title: const Text('Mark as Urgent'),
+                  subtitle: const Text('This job needs immediate attention'),
+                  value: _isUrgent,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _isUrgent = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: kLargePadding),
+                
+                CustomButton(
+                  text: widget.jobToEdit != null ? 'Update Job' : 'Create Job',
+                  onPressed: _isLoading ? null : _handleSubmit,
+                  isLoading: _isLoading,
+                  fullWidth: true,
+                ),
+              ],
+            ),
           ),
         ),
       ),

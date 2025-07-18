@@ -198,7 +198,9 @@ class NotificationTile extends ConsumerWidget {
     }
 
     final amount = notification.metadata?['amount'] as double?;
-    if (amount == null) return const SizedBox.shrink();
+    if (amount == null) {
+      return const SizedBox.shrink();
+    }
 
     Theme.of(context);
     final isReceived = notification.type == 'payment_received';
@@ -247,7 +249,9 @@ class NotificationTile extends ConsumerWidget {
     final jobTitle = notification.metadata?['jobTitle'] as String?;
     final jobStatus = notification.metadata?['jobStatus'] as String?;
     
-    if (jobTitle == null) return const SizedBox.shrink();
+    if (jobTitle == null) {
+      return const SizedBox.shrink();
+    }
 
     final theme = Theme.of(context);
 

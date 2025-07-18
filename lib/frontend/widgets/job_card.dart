@@ -95,7 +95,9 @@ class JobCard extends ConsumerWidget {
   }
 
   Widget _buildApplicationStatusBadge(BuildContext context) {
-    if (application == null) return const SizedBox.shrink();
+    if (application == null) {
+      return const SizedBox.shrink();
+    }
     
     final status = application!.status;
     Color statusColor;
